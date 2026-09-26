@@ -14,7 +14,7 @@ jwalk = "0.8"
 trash = "5"
 plist = "1"
 regex = "1"
-dirs = "6"
+dirs = "7"
 thiserror = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 
