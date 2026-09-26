@@ -39,7 +39,7 @@ jobs:
         run: cargo test -p mrclean-core
       - name: Build universal app (Apple Silicon + Intel)
         run: npx tauri build --target universal-apple-darwin --bundles app,dmg
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Mr.Clean-macOS
           path: target/universal-apple-darwin/release/bundle/dmg/*.dmg
