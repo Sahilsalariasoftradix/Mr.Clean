@@ -3,9 +3,10 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { Button, Card, Page, SoftTile, cx } from "../components/ui";
 import { api, inTauri, openFullDiskAccessSettings } from "../lib/api";
+import { fdaUiState, loadFdaDismissed, saveFdaDismissed } from "../lib/fda";
 import { platform, words } from "../lib/platform";
 import { useStore } from "../lib/store";
-import type { DeleteMode } from "../lib/types";
+import type { AppIdentity, DeleteMode } from "../lib/types";
 
 function Section({ icon, color, title, children }: { icon: LucideIcon; color: string; title: string; children: ReactNode }) {
   return (
@@ -22,10 +23,47 @@ function Section({ icon, color, title, children }: { icon: LucideIcon; color: st
 export default function Settings() {
   const { deleteMode, setDeleteMode } = useStore();
   const [fda, setFda] = useState<boolean | null>(null);
+  const [dismissed, setDismissed] = useState(loadFdaDismissed);
+  const [identity, setIdentity] = useState<AppIdentity | null>(null);
 
+  // Only show the grant CTA when the check returns false. Re-check on focus so
+  // returning from System Settings updates without another nag if already allowed.
   useEffect(() => {
-    api.hasFullDiskAccess().then(setFda).catch(() => setFda(null));
+    const check = () => {
+      api
+        .hasFullDiskAccess()
+        .then((ok) => {
+          setFda(ok);
+          if (ok) {
+            saveFdaDismissed(false);
+            setDismissed(false);
+          }
+        })
+        .catch(() => setFda(null));
+    };
+    check();
+    api.appIdentity().then(setIdentity).catch(() => {});
+    const onVis = () => {
+      if (!document.hidden) check();
+    };
+    window.addEventListener("focus", check);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("focus", check);
+      document.removeEventListener("visibilitychange", onVis);
+    };
   }, []);
+
+  const dismiss = () => {
+    saveFdaDismissed(true);
+    setDismissed(true);
+  };
+  const undismiss = () => {
+    saveFdaDismissed(false);
+    setDismissed(false);
+  };
+
+  const state = fdaUiState(fda, dismissed);
 
   const option = (mode: DeleteMode, title: string, text: string) => (
     <button
@@ -58,21 +96,48 @@ export default function Settings() {
 
         {platform === "mac" && (
           <Section icon={HardDrive} color="var(--c-info)" title="Full Disk Access">
-            {fda ? (
-            <p className="flex items-center gap-2 text-[13px] text-safe-text">
-              <CircleCheck className="size-4" /> Granted. Mr.Clean can see every cache folder.
-            </p>
-          ) : (
-            <>
-              <p className="text-[13px] text-muted">
-                macOS hides some folders (Trash, Mail, parts of ~/Library) until you allow it. Without it, scans still work but may miss some space. Open the setting, turn on
-                <b className="text-ink"> Mr.Clean</b>, then restart the app.
+            {state === "granted" && (
+              <p className="flex items-center gap-2 text-[13px] text-safe-text">
+                <CircleCheck className="size-4" /> Granted. Mr.Clean can see every cache folder.
               </p>
-              <Button className="mt-3" onClick={() => openFullDiskAccessSettings()} disabled={!inTauri}>
-                Open Privacy settings
-              </Button>
-            </>
-          )}
+            )}
+            {state === "ask" && (
+              <>
+                <p className="text-[13px] text-muted">
+                  macOS hides some folders (Trash, Mail, parts of ~/Library) until you allow it. Without it, scans still work but may miss some space. Open the setting, turn on
+                  <b className="text-ink"> Mr.Clean</b>, then restart the app.
+                </p>
+                {identity && (
+                  <p className="mt-2 break-all font-mono text-[11px] text-faint">
+                    {identity.bundle_id}
+                    <br />
+                    {identity.path}
+                  </p>
+                )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button onClick={() => openFullDiskAccessSettings()} disabled={!inTauri}>
+                    Open Privacy settings
+                  </Button>
+                  <Button variant="ghost" onClick={dismiss}>
+                    I&apos;ll do this later
+                  </Button>
+                </div>
+              </>
+            )}
+            {state === "dismissed" && (
+              <>
+                <p className="text-[13px] text-muted">Not granted yet. Scans still work; some folders may be hidden.</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button onClick={() => openFullDiskAccessSettings()} disabled={!inTauri}>
+                    Open Privacy settings
+                  </Button>
+                  <Button variant="ghost" onClick={undismiss}>
+                    Show reminder
+                  </Button>
+                </div>
+              </>
+            )}
+            {state === "loading" && <p className="text-[13px] text-muted">Checking…</p>}
           </Section>
         )}
 
