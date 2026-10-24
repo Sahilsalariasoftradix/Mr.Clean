@@ -15,7 +15,8 @@ crates/core/        All logic, no UI. Every behaviour lives and is tested here.
   src/simruntime.rs simulator runtime names/mounts (removal lives in safety.rs)
   src/memory.rs     processes, dev leftovers, protected quit
   src/security/     malware checks (read-only), iocs.json, quarantine, scan_tree (CI self-scan),
-                    protection.rs (OS protection checks), windows.rs (Windows startup items)
+                    protection.rs (OS protection checks), windows.rs (Windows startup items),
+                    autorun.rs (editor tasks on folder open, npm scripts, scripts disguised as fonts)
   src/system.rs     dashboard info
   examples/         scan.rs (read-only CLI of every scanner), repo_scan.rs (CI malware gate)
 src-tauri/          Thin Tauri commands wrapping the core. No logic here.

@@ -1,6 +1,7 @@
 //! One walk over the user's code folders collecting everything the security
-//! checks need: git repos, node_modules, JS config files, workflows, and files
-//! whose names match known malware artifacts.
+//! checks need: git repos, node_modules, JS config files, workflows, editor
+//! task files, scripts, fonts/images that might be scripts in disguise, and
+//! files whose names match known malware artifacts.
 
 use std::path::PathBuf;
 
@@ -39,7 +40,24 @@ pub struct Discovered {
     pub js_configs: Vec<PathBuf>,
     pub workflows: Vec<PathBuf>,
     pub ioc_files: Vec<PathBuf>,
+    /// Project `package.json` files (not ones inside node_modules).
+    pub packages: Vec<PathBuf>,
+    /// `.vscode/tasks.json` and `.vscode/settings.json`: tasks there can run on folder open.
+    pub editor_files: Vec<PathBuf>,
+    /// Plain `.js` / `.cjs` / `.mjs` files that aren't config files.
+    pub scripts: Vec<PathBuf>,
+    /// Fonts, images and media: checked for scripts renamed to look like them.
+    pub assets: Vec<PathBuf>,
     pub projects: usize,
+}
+
+/// File types that are binary data, never text code.
+pub const ASSET_EXTENSIONS: &[&str] = &[
+    "ttf", "otf", "woff", "woff2", "eot", "png", "jpg", "jpeg", "gif", "ico", "bmp", "webp", "mp3", "mp4", "wav", "pdf",
+];
+
+fn extension(name: &str) -> Option<String> {
+    name.rsplit_once('.').map(|(_, e)| e.to_ascii_lowercase())
 }
 
 fn is_js_config(name: &str) -> bool {
@@ -63,7 +81,9 @@ pub fn discover(env: &Env, roots: &[PathBuf], iocs: &Iocs, cancel: &Cancel) -> D
                 let at_home = dir == home.as_path();
                 for c in children.iter_mut().flatten() {
                     let name = c.file_name.to_string_lossy();
-                    let hidden_keep = name == ".github" || name == ".git" || name == ".husky";
+                    // A project's .vscode holds its tasks; ~/.vscode is just installed extensions.
+                    let hidden_keep =
+                        name == ".github" || name == ".git" || name == ".husky" || (name == ".vscode" && !at_home);
                     let prune = SKIP_ANYWHERE.contains(&name.as_ref())
                         || name == ".git"
                         || (name.starts_with('.') && !hidden_keep)
@@ -89,12 +109,23 @@ pub fn discover(env: &Env, roots: &[PathBuf], iocs: &Iocs, cancel: &Cancel) -> D
                 continue;
             }
             match name.as_str() {
-                "package.json" => d.projects += 1,
+                "package.json" => {
+                    d.projects += 1;
+                    d.packages.push(path.clone());
+                }
                 "package-lock.json" => d.lockfiles.push(path.clone()),
                 _ => {}
             }
-            if is_js_config(&name) {
+            let in_vscode = path.parent().is_some_and(|p| p.ends_with(".vscode"));
+            let ext = extension(&name);
+            if in_vscode && (name == "tasks.json" || name == "settings.json") {
+                d.editor_files.push(path.clone());
+            } else if is_js_config(&name) {
                 d.js_configs.push(path.clone());
+            } else if matches!(ext.as_deref(), Some("js" | "cjs" | "mjs")) {
+                d.scripts.push(path.clone());
+            } else if ext.as_deref().is_some_and(|e| ASSET_EXTENSIONS.contains(&e)) {
+                d.assets.push(path.clone());
             }
             let in_workflows = path.parent().is_some_and(|p| p.ends_with(".github/workflows"));
             if in_workflows && (name.ends_with(".yml") || name.ends_with(".yaml")) {

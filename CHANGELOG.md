@@ -2,6 +2,17 @@
 
 All notable changes to Mr.Clean. Versions follow [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Security
+- New checks for the attack found in a pull request to this repo (a contributor's machine was compromised and the malware force-pushed itself into their branch):
+  - VS Code / Cursor tasks set to run when a folder is opened (`runOn: folderOpen`), especially hidden ones, in projects and in your editor's own settings.
+  - npm scripts (`dev`, `build`…) that start hidden code, or run a font or image file as code.
+  - Scripts disguised as fonts, images or media files.
+  - Code hidden behind walls of tabs, words spelled as `\u` escape codes, numbers disguised as XOR sums, and the global flags BeaverTail / InvisibleFerret loaders set.
+  - Malware loaders running right now (from process command lines).
+- The CI malware self-scan now uses the scanner from the target branch, so a pull request can't switch off the checks that scan it.
+
 ## v0.1.0 — first release
 
 The first public build, for **macOS**, **Windows 10/11** and **Linux** (Ubuntu 22.04+).

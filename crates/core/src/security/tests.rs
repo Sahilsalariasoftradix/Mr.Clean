@@ -243,3 +243,144 @@ fn fixes_are_fixed_git_commands() {
         ]
     );
 }
+
+/// An inert stand-in for the loader found in a pull request (Oct 2026): the same
+/// disguises (tab padding, escaped words, XOR'd numbers, loader globals) and no payload.
+fn inert_loader() -> String {
+    let escaped = "R['\\u006C\\u0065\\u006E\\u0067\\u0074\\u0068']";
+    let mut code = String::from("global['!']='8-&&';function y7(R,c){var n=[],o=274987^274987;");
+    for i in 0..6 {
+        code.push_str(&format!("o+={}^{};{escaped};", 288002 + i, 288003 + i));
+    }
+    code.push_str("return n.join('')}");
+    format!("{}{}", "\t".repeat(260), code)
+}
+
+fn poisoned_project(root: &Path) {
+    write(
+        &root.join("package.json"),
+        r#"{"name":"app","scripts":{"dev":"node api.js && vite","build":"node api.js && tsc --noEmit && vite build","lint":"eslint ."}}"#,
+    );
+    write(&root.join("api.js"), &inert_loader());
+    write(&root.join("public/fonts/fa-solid-300.ttf"), &inert_loader());
+    write(
+        &root.join(".vscode/tasks.json"),
+        r#"{
+  "version": "2.0.0",
+  "tasks": [{
+    "label": "eslint-check",
+    "type": "shell",
+    "command": "node",
+    "args": ["./public/fonts/fa-solid-300.ttf"],
+    "presentation": { "reveal": "never", "echo": false, "close": true },
+    "runOptions": { "runOn": "folderOpen" }
+  }]
+}"#,
+    );
+    write(
+        &root.join(".vscode/settings.json"),
+        r#"{ "task.allowAutomaticTasks": true }"#,
+    );
+}
+
+#[test]
+fn scan_tree_catches_the_folder_open_font_loader() {
+    let d = tempfile::tempdir().unwrap();
+    let bad = d.path().join("pr");
+    poisoned_project(&bad);
+    let r = scan_tree(&bad, &Cancel::new());
+    let titles: Vec<String> = r
+        .findings
+        .iter()
+        .map(|f| format!("{:?} {}", f.severity, f.title))
+        .collect();
+    let has = |needle: &str| titles.iter().any(|t| t == needle);
+    assert!(has("High Editor task runs when the folder is opened"), "{titles:#?}");
+    assert!(has("High Script disguised as a .ttf file"), "{titles:#?}");
+    assert!(has("High Hidden code in a JavaScript file"), "{titles:#?}");
+    assert!(has("High npm script \"dev\" runs hidden code"), "{titles:#?}");
+    assert!(has("High npm script \"build\" runs hidden code"), "{titles:#?}");
+    assert!(
+        has("Medium Folder settings let tasks run without asking"),
+        "{titles:#?}"
+    );
+    assert!(!titles.iter().any(|t| t.contains("\"lint\"")), "{titles:#?}");
+    let task = r.findings.iter().find(|f| f.title.starts_with("Editor task")).unwrap();
+    assert!(
+        task.detail.contains("hides its terminal") && task.detail.contains(".ttf"),
+        "{}",
+        task.detail
+    );
+}
+
+#[test]
+fn ordinary_editor_tasks_fonts_and_scripts_pass() {
+    let d = tempfile::tempdir().unwrap();
+    let ok = d.path().join("ok");
+    write(
+        &ok.join("package.json"),
+        r#"{"name":"ok","scripts":{"dev":"vite","gen":"node scripts/gen-icons.mjs","test":"vitest run"}}"#,
+    );
+    write(
+        &ok.join("scripts/gen-icons.mjs"),
+        "import fs from 'node:fs';\nconst names = ['a', 'b'];\nfs.writeFileSync('out.json', JSON.stringify(names));\n",
+    );
+    write(
+        &ok.join(".vscode/tasks.json"),
+        r#"{ "version": "2.0.0", "tasks": [{ "label": "dev", "type": "npm", "script": "dev" }] }"#,
+    );
+    write(&ok.join(".vscode/settings.json"), r#"{ "editor.formatOnSave": true }"#);
+    // A real TrueType header and a real PNG header.
+    let font = [
+        &[0u8, 1, 0, 0, 0, 14, 0, 128, 0, 3, 0, 96][..],
+        b"OS/2 function var const",
+    ]
+    .concat();
+    fs::create_dir_all(ok.join("public/fonts")).unwrap();
+    fs::write(ok.join("public/fonts/Inter.ttf"), font).unwrap();
+    fs::write(ok.join("public/logo.png"), b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\0\x10").unwrap();
+    // Minified but honest code: one long line, no disguises.
+    write(
+        &ok.join("public/vendor.min.js"),
+        &format!("!function(e){{{}}}(window);", "var a=1,b=2;".repeat(800)),
+    );
+    let r = scan_tree(&ok, &Cancel::new());
+    assert!(
+        r.findings.iter().all(|f| f.severity < Severity::Medium),
+        "{:#?}",
+        r.findings
+    );
+}
+
+#[test]
+fn global_editor_tasks_are_checked_on_the_machine_scan() {
+    let d = tempfile::tempdir().unwrap();
+    let env = Env::sandboxed(d.path(), Os::Mac);
+    write(
+        &env.home.join("Library/Application Support/Cursor/User/tasks.json"),
+        r#"{"tasks":[{"command":"node ~/.cache/x.woff2","runOptions":{"runOn":"folderOpen"},"presentation":{"reveal":"never"}}]}"#,
+    );
+    let r = scan(&env, &[], &Cancel::new());
+    let f = r
+        .findings
+        .iter()
+        .find(|f| f.title == "Editor task runs when the folder is opened")
+        .unwrap();
+    assert_eq!(f.severity, Severity::High);
+}
+
+#[test]
+fn installed_editor_extensions_in_home_are_not_scanned() {
+    let d = tempfile::tempdir().unwrap();
+    let env = Env::sandboxed(d.path(), Os::Mac);
+    write(
+        &env.home.join(".vscode/extensions/some.ext/dist/bundle.js"),
+        &inert_loader(),
+    );
+    let r = scan(&env, std::slice::from_ref(&env.home), &Cancel::new());
+    assert!(
+        !r.findings.iter().any(|f| f.title == "Hidden code in a JavaScript file"),
+        "{:#?}",
+        r.findings
+    );
+}

@@ -1,5 +1,5 @@
 {
-  "_comment": "Indicators of compromise for developer-targeted malware. Bundled seed list; drop an updated copy at ~/.mrclean/iocs.json to extend it (entries are merged). Sources: Datadog Security Labs, Unit 42, Red Canary, Microsoft Security Blog, Aikido/Socket write-ups (2025).",
+  "_comment": "Indicators of compromise for developer-targeted malware. Bundled seed list; drop an updated copy at ~/.mrclean/iocs.json to extend it (entries are merged). Sources: Datadog Security Labs, Unit 42, Red Canary, Microsoft Security Blog, Aikido/Socket write-ups (2025). script_markers: the EtherHiding loader that a compromised contributor force-pushed into a pull request here (Oct 2026); it reads its server address from Ethereum transactions sent by the wallet below.",
   "compromised_packages": {
     "chalk": ["5.6.1"],
     "debug": ["4.4.2"],
@@ -37,5 +37,11 @@
   ],
   "repo_files": ["truffleSecrets.json", "actionsSecrets.json"],
   "workflow_files": ["shai-hulud-workflow.yml", "shai-hulud.yml", "shai-hulud.yaml"],
-  "content_markers": ["SHA1HULUD", "Sha1-Hulud", "Shai-Hulud", "shai-hulud"]
+  "content_markers": ["SHA1HULUD", "Sha1-Hulud", "Shai-Hulud", "shai-hulud"],
+  "script_markers": [
+    "global['r']=require;global['m']=module",
+    "0x1eef0849eda15d87f64e51c73c8442cf3c8bcef3",
+    "q4FZkxX{!h,Sr3=@",
+    "y-p_>d$0B&@^1aQk"
+  ]
 }
