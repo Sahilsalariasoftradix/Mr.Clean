@@ -21,20 +21,34 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      - name: Check out the code to scan
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
+          path: code
+      # On a pull request the scanner comes from the target branch, so a pull
+      # request can't switch off or weaken the checks that scan it.
+      - name: Check out the scanner
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          path: scanner
       - uses: actions/setup-node@v7
         with:
           node-version: 22
       # --ignore-scripts: never run a pull request's install scripts before it's scanned.
       - run: npm ci --ignore-scripts
+        working-directory: code
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
           toolchain: 1.98.0
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
-      - name: Scan this checkout with Mr.Clean's own malware scanner
-        run: cargo run --release -p mrclean-core --example repo_scan -- .
+        with:
+          workspaces: scanner
+      - name: Scan the code with Mr.Clean's own malware scanner
+        working-directory: scanner
+        run: cargo run --release -p mrclean-core --example repo_scan -- "$GITHUB_WORKSPACE/code"
 
   codeql:
     name: CodeQL (${{ matrix.language }})
