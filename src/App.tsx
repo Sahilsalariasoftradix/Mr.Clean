@@ -112,11 +112,11 @@ function Shell() {
         <button
           onClick={openPalette}
           title={`Search (${paletteShortcut})`}
-          className="glass mb-3 flex h-10 w-full cursor-pointer items-center gap-2.5 rounded-[12px] px-3 text-[13.5px] text-muted transition-colors hover:text-ink"
+          className="glass mb-3 flex h-10 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[12px] text-[13.5px] text-muted transition-colors hover:text-ink lg:justify-start lg:px-3"
         >
           <Search className="size-4 shrink-0" aria-hidden />
-          <span className="flex-1 text-left">Search</span>
-          <kbd className="rounded-[6px] border border-line px-1.5 text-[11px] text-faint">{paletteShortcut}</kbd>
+          <span className="sr-only flex-1 text-left lg:not-sr-only">Search</span>
+          <kbd className="hidden rounded-[6px] border border-line px-1.5 text-[11px] text-faint lg:inline">{paletteShortcut}</kbd>
         </button>
         {/* One glass panel holds every destination, Settings included. */}
         <nav aria-label="Main" className="glass flex flex-col gap-1 rounded-[16px] p-1.5">
