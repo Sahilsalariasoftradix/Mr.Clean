@@ -21,6 +21,8 @@ pub struct Iocs {
     pub repo_files: Vec<String>,
     pub workflow_files: Vec<String>,
     pub content_markers: Vec<String>,
+    /// Text only found in known malware scripts or the commands they run.
+    pub script_markers: Vec<String>,
 }
 
 const BUNDLED: &str = include_str!("iocs.json");
@@ -56,6 +58,7 @@ impl Iocs {
         self.repo_files.extend(o.repo_files);
         self.workflow_files.extend(o.workflow_files);
         self.content_markers.extend(o.content_markers);
+        self.script_markers.extend(o.script_markers);
     }
 
     pub fn is_compromised(&self, name: &str, version: &str) -> bool {
@@ -66,6 +69,13 @@ impl Iocs {
 
     pub fn has_marker(&self, text: &str) -> Option<&str> {
         self.content_markers
+            .iter()
+            .find(|m| text.contains(m.as_str()))
+            .map(String::as_str)
+    }
+
+    pub fn has_script_marker(&self, text: &str) -> Option<&str> {
+        self.script_markers
             .iter()
             .find(|m| text.contains(m.as_str()))
             .map(String::as_str)

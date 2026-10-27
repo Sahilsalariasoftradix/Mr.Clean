@@ -18,9 +18,9 @@ const SEV: Record<Severity, { label: string; tone: Tone; color: string }> = {
 
 // Every area the scanner checks, in the order shown under "What we checked".
 const AREA: Record<Area, { label: string; checks: string; icon: LucideIcon; color: string }> = {
-  known_malware: { label: "Known malware", checks: "Shai-Hulud, BeaverTail and other known folders", icon: Bug, color: "var(--c-danger)" },
+  known_malware: { label: "Known malware", checks: "Shai-Hulud, BeaverTail and other known folders, and loaders running now", icon: Bug, color: "var(--c-danger)" },
   npm: { label: "npm packages", checks: "Known bad versions and risky install scripts", icon: Package, color: "var(--c-danger)" },
-  project_code: { label: "Project code", checks: "Hidden code in config files", icon: FileCode2, color: "var(--c-warn)" },
+  project_code: { label: "Project code", checks: "Editor tasks that run on open, npm scripts, scripts disguised as fonts, hidden code", icon: FileCode2, color: "var(--c-warn)" },
   startup: { label: "Startup items", checks: "Launch agents and login items", icon: Power, color: "var(--c-purple)" },
   shell_profile: { label: "Shell profiles", checks: ".zshrc, .bashrc and friends", icon: SquareTerminal, color: "var(--c-teal)" },
   git: { label: "Git", checks: "Hooks, identity and commits", icon: GitBranch, color: "var(--c-info)" },

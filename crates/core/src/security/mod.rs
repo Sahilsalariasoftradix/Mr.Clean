@@ -3,8 +3,10 @@
 //!
 //! Focus: supply-chain malware that targets developers (Shai-Hulud npm worm,
 //! Contagious Interview / BeaverTail), persistence (LaunchAgents, cron, shell
-//! profiles), git tampering (hooks, identity) and exposed tokens.
+//! profiles), code that runs itself (editor tasks on folder open, npm scripts,
+//! scripts disguised as fonts), git tampering (hooks, identity) and exposed tokens.
 
+mod autorun;
 mod discover;
 mod git;
 pub mod iocs;
@@ -206,6 +208,11 @@ pub fn scan(env: &Env, roots: &[PathBuf], cancel: &Cancel) -> SecurityReport {
 
     f.extend(persistence::scan(env));
     f.extend(shell::scan(env));
+    f.extend(autorun::user_editor_tasks(env, &iocs));
+    // Only the real machine's processes; sandboxed scans (tests) never look.
+    if dirs::home_dir().is_some_and(|h| h == env.home) {
+        f.extend(autorun::running_loaders(&autorun::process_command_lines(), &iocs));
+    }
     if cancel.is_cancelled() {
         return finish(f, 0, 0, 0, started);
     }
@@ -214,6 +221,7 @@ pub fn scan(env: &Env, roots: &[PathBuf], cancel: &Cancel) -> SecurityReport {
     let (npm_findings, packages) = npm::scan(env, &found, &iocs, cancel);
     f.extend(npm_findings);
     f.extend(discover::findings(&found, &iocs));
+    f.extend(autorun::findings(&found, &iocs));
     finish(f, found.repos.len(), found.projects, packages, started)
 }
 
@@ -239,6 +247,7 @@ pub fn scan_tree(root: &Path, cancel: &Cancel) -> SecurityReport {
     let (npm_findings, packages) = npm::scan(&env, &found, &iocs, cancel);
     f.extend(npm_findings);
     f.extend(discover::findings(&found, &iocs));
+    f.extend(autorun::findings(&found, &iocs));
     let _ = std::fs::remove_dir_all(&sandbox);
     finish(f, found.repos.len(), found.projects, packages, started)
 }
