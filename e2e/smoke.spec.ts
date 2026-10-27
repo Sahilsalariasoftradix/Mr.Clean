@@ -102,3 +102,31 @@ test("memory page lists dev leftovers and settings persist delete mode", async (
   await expect(page.getByText(/items are deleted permanently/)).toBeVisible({ timeout: 10_000 });
   expect(errors).toEqual([]);
 });
+
+test("command palette jumps to pages and runs actions from the keyboard", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto("/");
+  // Ctrl+K (⌘K on a Mac) opens it; typing filters; Enter runs the top match.
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("dialog", { name: "Command palette" });
+  await expect(palette).toBeVisible();
+  await page.keyboard.type("malware");
+  await expect(palette.getByRole("option").first()).toHaveText(/Run security scan/);
+  await page.keyboard.press("Enter");
+  await expect(palette).toBeHidden();
+  // It opened Security and started that page's own scan.
+  await expect(page.getByText("Suspicious startup item: com.apple.sysupdate")).toBeVisible({ timeout: 10_000 });
+
+  // The sidebar button opens it too, and scan results are searchable.
+  await page.getByRole("button", { name: /^Search/ }).click();
+  await page.keyboard.type("startup item");
+  await expect(palette.getByRole("option", { name: /Suspicious startup item/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(palette).toBeHidden();
+
+  await page.keyboard.press("Control+k");
+  await page.keyboard.type("node_modules");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "Clean" })).toBeVisible();
+  expect(errors).toEqual([]);
+});

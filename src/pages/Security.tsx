@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, Empty, Modal, Page, Skeleton, SoftTile, cx, type Tone } from "../components/ui";
 import { api } from "../lib/api";
 import { ago, tildify } from "../lib/format";
-import { useStore } from "../lib/store";
+import { useIntent, useStore } from "../lib/store";
 import type { Area, Finding, Fix, ProtectionCheck, QuarantineEntry, SecurityReport, Severity } from "../lib/types";
 import { platform, words } from "../lib/platform";
 
@@ -70,6 +70,7 @@ export default function Security() {
       setScanning(false);
     }
   };
+  useIntent("security", "scan", scan);
 
   const doQuarantine = async (f: Finding) => {
     try {

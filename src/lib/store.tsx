@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { api, inTauri, onScanProgress } from "./api";
 import { bytes } from "./format";
@@ -20,6 +20,14 @@ export type Page = "overview" | "clean" | "files" | "security" | "memory" | "set
 
 /** Steps of "Scan everything"; each shows its own status. */
 export type ScanStep = "caches" | "node_modules" | "files" | "security";
+/** Something a page should do as soon as it's shown (asked for from the command palette). */
+export type IntentKind = "scan" | "find_node_modules" | "refresh";
+export interface Intent {
+  page: Page;
+  kind: IntentKind;
+  /** Bumped every time, so asking twice runs twice. */
+  id: number;
+}
 export type StepState = "idle" | "running" | "done" | "error";
 
 interface Toast {
@@ -58,6 +66,10 @@ interface Store {
   toasts: Toast[];
   toast: (text: string, tone?: "ok" | "error") => void;
   reportDelete: (r: DeleteReport, mode: DeleteMode) => void;
+  intent: Intent | null;
+  /** Open `page` and have it run `kind` (its own Scan / Refresh button). */
+  request: (page: Page, kind: IntentKind) => void;
+  clearIntent: () => void;
 }
 
 const Ctx = createContext<Store | null>(null);
@@ -89,6 +101,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     inTauri ? [] : Array.from({ length: MEM_HISTORY }, (_, i) => 38 + 4 * Math.sin(i / 7) + 2 * Math.sin(i / 2.3)),
   );
   const [scan, setScan] = useState(IDLE);
+  const [intent, setIntent] = useState<Intent | null>(null);
+  const request = useCallback((p: Page, kind: IntentKind) => {
+    go(p);
+    setIntent((cur) => ({ page: p, kind, id: (cur?.id ?? 0) + 1 }));
+  }, []);
+  const clearIntent = useCallback(() => setIntent(null), []);
 
   // Live numbers every 2 s; one history point every 5 s.
   useEffect(() => {
@@ -199,6 +217,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         toasts,
         toast,
         reportDelete,
+        intent,
+        request,
+        clearIntent,
       }}
     >
       {children}
@@ -225,4 +246,17 @@ export function useScanProgress(task: string, active: boolean): ScanProgress | n
     return () => off?.();
   }, [task, active]);
   return p;
+}
+
+/** Run `fn` when the command palette asks this page for `kind`. */
+export function useIntent(page: Page, kind: IntentKind, fn: () => void) {
+  const { intent, clearIntent } = useStore();
+  const run = useRef(fn);
+  run.current = fn;
+  useEffect(() => {
+    if (intent?.page === page && intent.kind === kind) {
+      clearIntent();
+      run.current();
+    }
+  }, [intent, page, kind, clearIntent]);
 }

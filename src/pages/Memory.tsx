@@ -6,7 +6,7 @@ import { AppIcon } from "../components/AppIcon";
 import { AnimatedNumber, AreaChart, Button, Card, Donut, IconTile, Page, toneFill, type Tone } from "../components/ui";
 import { api } from "../lib/api";
 import { bytes, percent } from "../lib/format";
-import { MEM_HISTORY, MEM_SAMPLE_MS, useStore } from "../lib/store";
+import { MEM_HISTORY, MEM_SAMPLE_MS, useIntent, useStore } from "../lib/store";
 import type { AppGroup, DevKind, MemoryBreakdown, MemorySnapshot, ProcInfo } from "../lib/types";
 import { words } from "../lib/platform";
 
@@ -55,6 +55,7 @@ export default function Memory() {
     api.memoryBreakdown().then(setParts).catch(() => {});
   }, []);
 
+  useIntent("memory", "refresh", refresh);
   useEffect(() => {
     refresh();
     const t = setInterval(refresh, 4000);

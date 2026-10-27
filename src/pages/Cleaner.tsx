@@ -6,7 +6,7 @@ import { AppIcon } from "../components/AppIcon";
 import { AnimatedNumber, Badge, Button, Card, Checkbox, Chip, Empty, Modal, Page, Skeleton, SoftTile, cx, type Tone } from "../components/ui";
 import { api } from "../lib/api";
 import { ago, baseName, bytes, parentOf, tildify } from "../lib/format";
-import { useScanProgress, useStore } from "../lib/store";
+import { useIntent, useScanProgress, useStore } from "../lib/store";
 import { CHIPS, CHIP_LABEL, chipOf, toolOf, type ChipId } from "../lib/tools";
 import type { CleanRequest, NodeModulesHit, RuleScan, Safety } from "../lib/types";
 import { words } from "../lib/platform";
@@ -60,6 +60,7 @@ export default function Cleaner() {
       setScanning(false);
     }
   };
+  useIntent("clean", "scan", scan);
 
   const selected = useMemo(() => {
     if (!cleaner) return { bytes: 0, count: 0, requests: [] as CleanRequest[], lines: [] as { name: string; bytes: number; permanent: boolean }[], password: false };
@@ -404,6 +405,7 @@ function NodeModulesPanel() {
       setBusy(false);
     }
   };
+  useIntent("clean", "find_node_modules", () => find());
   const remove = async () => {
     setRemoving(true);
     try {
