@@ -1,21 +1,21 @@
-# Dependency updates arrive once a month, one PR per ecosystem (Rust, npm,
-# GitHub Actions). Security fixes are separate and still arrive immediately.
+# Dependency updates arrive once a month. Rust and npm come together in one
+# PR: Tauri's Rust crate and its npm packages must stay on the same minor
+# version, and separate PRs each fail `tauri build` until the other merges.
+# GitHub Actions updates come in their own PR. Security fixes are separate
+# and still arrive immediately.
 version: 2
+multi-ecosystem-groups:
+  app:
+    schedule: { interval: monthly }
 updates:
   - package-ecosystem: cargo
     directory: /
-    schedule: { interval: monthly }
-    open-pull-requests-limit: 3
-    groups:
-      rust:
-        patterns: ["*"]
+    patterns: ["*"]
+    multi-ecosystem-group: app
   - package-ecosystem: npm
     directory: /
-    schedule: { interval: monthly }
-    open-pull-requests-limit: 3
-    groups:
-      npm:
-        patterns: ["*"]
+    patterns: ["*"]
+    multi-ecosystem-group: app
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: monthly }
