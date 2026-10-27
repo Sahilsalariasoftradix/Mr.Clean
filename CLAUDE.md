@@ -18,9 +18,10 @@ crates/core/        All logic, no UI. Every behaviour lives and is tested here.
                     protection.rs (OS protection checks), windows.rs (Windows startup items),
                     autorun.rs (editor tasks on folder open, npm scripts, scripts disguised as fonts),
                     runtimes.rs (Node.js/Bun versions with known RCE bugs, e.g. Node2Shell)
+  src/background.rs menu bar status, automatic-scan schedule and notification rules (settings in ~/.mrclean)
   src/system.rs     dashboard info
   examples/         scan.rs (read-only CLI of every scanner), repo_scan.rs (CI malware gate)
-src-tauri/          Thin Tauri commands wrapping the core. No logic here.
+src-tauri/          Thin Tauri commands wrapping the core. No logic here. background.rs = tray menu, close-to-tray, timer.
 src/                React + TypeScript + Tailwind UI. lib/api.ts calls Tauri, or lib/mock.ts in a browser.
                     lib/platform.ts picks Mac/Windows/Linux wording; preview with ?platform=windows|linux.
 e2e/                Playwright smoke tests (run against the mock backend)

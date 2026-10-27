@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from "react";
 
 import { CommandPalette, openPalette, paletteShortcut } from "./components/CommandPalette";
 import { cx } from "./components/ui";
+import { onSecurityUpdated, onTrayAction } from "./lib/api";
 import { StoreProvider, useStore, type Page } from "./lib/store";
 import Cleaner from "./pages/Cleaner";
 import LargeFiles from "./pages/LargeFiles";
@@ -50,8 +51,23 @@ function NavItem({ active, label, icon: Icon, shortcut, extra, onClick }: { acti
 }
 
 function Shell() {
-  const { page, go, toasts, security } = useStore();
+  const { page, go, toasts, security, setSecurity, scanEverything } = useStore();
   const alerts = security ? security.counts.high + security.counts.medium : 0;
+
+  // Menu bar / tray clicks, and automatic scans that finished in the background.
+  useEffect(() => {
+    const off = [
+      onTrayAction((a) => {
+        if (a === "scan") {
+          go("overview");
+          void scanEverything();
+        } else if (a === "clean") go("clean");
+        else if (a === "security") go("security");
+      }),
+      onSecurityUpdated(setSecurity),
+    ];
+    return () => off.forEach((p) => p.then((f) => f()));
+  }, [go, scanEverything, setSecurity]);
 
   // ⌘1–⌘5 (Ctrl on Windows/Linux) switch pages; ⌘, opens Settings.
   useEffect(() => {
@@ -96,11 +112,11 @@ function Shell() {
         <button
           onClick={openPalette}
           title={`Search (${paletteShortcut})`}
-          className="glass mb-3 flex h-10 w-full cursor-pointer items-center gap-2.5 rounded-[12px] px-3 text-[13.5px] text-muted transition-colors hover:text-ink"
+          className="glass mb-3 flex h-10 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[12px] text-[13.5px] text-muted transition-colors hover:text-ink lg:justify-start lg:px-3"
         >
           <Search className="size-4 shrink-0" aria-hidden />
-          <span className="flex-1 text-left">Search</span>
-          <kbd className="rounded-[6px] border border-line px-1.5 text-[11px] text-faint">{paletteShortcut}</kbd>
+          <span className="sr-only flex-1 text-left lg:not-sr-only">Search</span>
+          <kbd className="hidden rounded-[6px] border border-line px-1.5 text-[11px] text-faint lg:inline">{paletteShortcut}</kbd>
         </button>
         {/* One glass panel holds every destination, Settings included. */}
         <nav aria-label="Main" className="glass flex flex-col gap-1 rounded-[16px] p-1.5">

@@ -1,6 +1,8 @@
 //! Tauri commands: thin wrappers that run core functions off the UI thread
 //! and stream progress events while long scans run.
 
+mod background;
+
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -19,11 +21,11 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
 #[derive(Default)]
-struct AppState {
-    sys: Mutex<System>,
+pub(crate) struct AppState {
+    pub(crate) sys: Mutex<System>,
     cancel: Cancel,
     bigscan: Mutex<Option<BigScan>>,
-    security: Mutex<Option<SecurityReport>>,
+    pub(crate) security: Mutex<Option<SecurityReport>>,
 }
 
 type Res<T> = Result<T, String>;
@@ -304,7 +306,7 @@ fn app_quit(state: State<'_, AppState>, app: String, force: bool) -> Res<Vec<Qui
 // --------------------------------------------------------------- security
 
 #[tauri::command]
-async fn security_scan(state: State<'_, AppState>) -> Res<SecurityReport> {
+async fn security_scan(app: AppHandle, state: State<'_, AppState>) -> Res<SecurityReport> {
     let cancel = state.cancel.clone();
     cancel.reset();
     let report = blocking(move || {
@@ -314,6 +316,7 @@ async fn security_scan(state: State<'_, AppState>) -> Res<SecurityReport> {
     })
     .await?;
     *state.security.lock().map_err(|e| e.to_string())? = Some(report.clone());
+    background::refresh_status(&app);
     Ok(report)
 }
 
@@ -345,7 +348,20 @@ fn quarantine_restore(id: String) -> Res<()> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(AppState::default())
+        .manage(background::TrayAvailable::default())
+        .setup(|app| {
+            let handle = app.handle().clone();
+            let _ = background::create_tray(&handle);
+            background::start_timer(handle);
+            Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                background::keep_running_on_close(window, api);
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             system_info,
             memory_live,
@@ -377,7 +393,17 @@ pub fn run() {
             security_quarantine,
             quarantine_list,
             quarantine_restore,
+            background::background_settings,
+            background::set_background_settings,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Mr.Clean");
+        .build(tauri::generate_context!())
+        .expect("error while running Mr.Clean")
+        .run(|app, event| {
+            // macOS: clicking the Dock icon brings a hidden window back.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = event {
+                background::show_main(app);
+            }
+            let _ = (app, event);
+        });
 }

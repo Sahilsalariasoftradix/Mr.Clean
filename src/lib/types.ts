@@ -249,3 +249,16 @@ export interface AppIdentity {
   bundle_id: string;
   path: string;
 }
+
+export type Schedule = "off" | "daily" | "weekly";
+
+/** Menu bar and automatic-scan settings (crates/core/src/background.rs). */
+export interface BackgroundSettings {
+  keep_in_menu_bar: boolean;
+  auto_scan: Schedule;
+  notify_threats: boolean;
+  notify_disk: boolean;
+  last_auto_scan: number | null;
+  /** False on systems without a menu bar / tray area (some Linux desktops). */
+  tray_available: boolean;
+}

@@ -12,5 +12,7 @@ describe("platform wording", () => {
     expect(wordsFor("windows")).toMatchObject({ computer: "PC", trash: "Recycle Bin", fileManager: "File Explorer" });
     expect(wordsFor("mac")).toMatchObject({ computer: "Mac", trash: "Trash", fileManager: "Finder" });
     expect(wordsFor("linux").os).toBe("Linux");
+    expect(wordsFor("mac").tray).toBe("menu bar");
+    expect(wordsFor("windows").tray).toBe("system tray");
   });
 });

@@ -105,6 +105,25 @@ test("memory page lists dev leftovers and settings persist delete mode", async (
   expect(errors).toEqual([]);
 });
 
+test("settings: menu bar and automatic scans", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto("/");
+  await nav(page, "Settings");
+  await expect(page.getByText("Menu bar & automatic scans")).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Keep Mr.Clean in the menu bar" })).toBeChecked();
+  // Notifications only make sense once automatic scans are on.
+  const threats = page.getByRole("checkbox", { name: "New security issues" });
+  await expect(threats).toBeDisabled();
+  await page.getByRole("radio", { name: "Weekly" }).click();
+  await expect(threats).toBeEnabled();
+  await expect(page.getByText("Last automatic scan: not yet")).toBeVisible();
+  // The choice is saved: it's still there after leaving and coming back.
+  await nav(page, "Overview");
+  await nav(page, "Settings");
+  await expect(page.getByRole("radio", { name: "Weekly" })).toHaveAttribute("aria-checked", "true");
+  expect(errors).toEqual([]);
+});
+
 test("command palette jumps to pages and runs actions from the keyboard", async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto("/");
@@ -130,5 +149,26 @@ test("command palette jumps to pages and runs actions from the keyboard", async 
   await page.keyboard.type("node_modules");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "Clean" })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("works in the smallest window: icon sidebar, nothing cut off sideways", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.setViewportSize({ width: 760, height: 560 });
+  await page.goto("/");
+  // The sidebar is an icon rail, but every button keeps its name.
+  await expect(page.getByText("Keep your Mac fast & safe")).toBeHidden();
+  for (const name of ["Clean", "Files", "Security", "Memory", "Settings", "Overview"]) {
+    await nav(page, name);
+    const sideways = await page.evaluate(() => {
+      const main = document.querySelector("main")!.getBoundingClientRect();
+      return [...document.querySelectorAll("main *")].filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && !(el as HTMLElement).classList.contains("blob") && r.right > main.right + 1;
+      }).length;
+    });
+    expect(sideways, `${name} spills out of the window`).toBe(0);
+  }
+  await expect(page.getByRole("button", { name: /Scan everything/ })).toBeVisible();
   expect(errors).toEqual([]);
 });
