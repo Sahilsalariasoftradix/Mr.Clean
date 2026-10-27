@@ -23,7 +23,7 @@ test("overview scans everything and shows what it found", async ({ page }) => {
   await expect(page.getByRole("button", { name: /Scan again/ })).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("Quick actions")).toBeVisible();
   await expect(page.getByText(/needs attention|in good shape|little care/)).toBeVisible();
-  await expect(page.getByText("5 issues")).toBeVisible();
+  await expect(page.getByText("6 issues")).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -77,6 +77,8 @@ test("security findings render with severity and quarantine", async ({ page }) =
   await expect(page.getByText(/need your attention/)).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("Suspicious startup item: com.apple.sysupdate")).toBeVisible();
   await expect(page.getByRole("button", { name: "Quarantine" }).first()).toBeVisible();
+  // Runtimes with known holes (Node2Shell) are listed too.
+  await expect(page.getByText("Old Node.js with Node2Shell installed by nvm")).toBeVisible();
   // One-click fixes ask first.
   await page.getByRole("main").getByRole("button", { name: "Fix", exact: true }).last().click();
   await expect(page.getByRole("dialog", { name: "Apply this fix?" })).toBeVisible();

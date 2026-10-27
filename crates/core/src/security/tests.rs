@@ -384,3 +384,68 @@ fn installed_editor_extensions_in_home_are_not_scanned() {
         r.findings
     );
 }
+
+#[test]
+fn node2shell_versions_installed_and_pinned() {
+    let d = tempfile::tempdir().unwrap();
+    let env = Env::sandboxed(d.path(), Os::Mac);
+    for v in ["v20.19.0", "v24.22.0", "v24.22.1"] {
+        fs::create_dir_all(env.home.join(".nvm/versions/node").join(v)).unwrap();
+    }
+    fs::create_dir_all(env.home.join(".volta/tools/image/node/26.12.1")).unwrap();
+    fs::create_dir_all(env.root.join("opt/homebrew/Cellar/bun/1.4.3")).unwrap();
+    write(
+        &env.root.join("usr/local/include/node/node_version.h"),
+        "#define NODE_MAJOR_VERSION 22\n#define NODE_MINOR_VERSION 23\n#define NODE_PATCH_VERSION 0\n",
+    );
+    let app = env.home.join("code/api");
+    write(
+        &app.join("package.json"),
+        r#"{"name":"api","volta":{"node":"24.22.1"}}"#,
+    );
+    write(&app.join(".nvmrc"), "v24.22.0\n");
+    write(&app.join("Dockerfile"), "FROM node:22.20.0-alpine\nRUN npm ci\n");
+    write(
+        &app.join(".github/workflows/ci.yml"),
+        "jobs:\n  t:\n    steps:\n      - with:\n          node-version: 24.22.1\n",
+    );
+
+    let r = scan(&env, std::slice::from_ref(&env.home), &Cancel::new());
+    let runtime: Vec<&Finding> = r.findings.iter().filter(|f| f.area == Area::Runtimes).collect();
+    let titles: Vec<&str> = runtime.iter().map(|f| f.title.as_str()).collect();
+    let nvm = runtime
+        .iter()
+        .find(|f| f.title == "Old Node.js with Node2Shell installed by nvm")
+        .unwrap();
+    assert_eq!(
+        nvm.evidence.as_deref(),
+        Some("20.19.0, 24.22.0"),
+        "fixed 24.22.1 isn't listed"
+    );
+    assert!(
+        titles.contains(&"Old Node.js with Node2Shell installed by the system installer"),
+        "{titles:#?}"
+    );
+    assert!(
+        titles.contains(&"Old Bun with Node2Shell installed by Homebrew"),
+        "{titles:#?}"
+    );
+    assert!(
+        !titles.iter().any(|t| t.contains("Volta")),
+        "26.12.1 is fixed: {titles:#?}"
+    );
+    assert!(
+        titles.contains(&"Project pins Node.js 24.22.0 (Node2Shell)"),
+        "{titles:#?}"
+    );
+    assert!(
+        titles.contains(&"Project pins Node.js 22.20.0 (Node2Shell)"),
+        "{titles:#?}"
+    );
+    assert!(
+        !titles.iter().any(|t| t.contains("24.22.1")),
+        "fixed pins pass: {titles:#?}"
+    );
+    // Nothing here is High: only the version you run by default (real machine only) is.
+    assert!(runtime.iter().all(|f| f.severity == Severity::Medium));
+}

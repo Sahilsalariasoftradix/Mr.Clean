@@ -23,6 +23,8 @@ pub struct Iocs {
     pub content_markers: Vec<String>,
     /// Text only found in known malware scripts or the commands they run.
     pub script_markers: Vec<String>,
+    /// Runtime versions with known remote-code-execution bugs (see runtimes.rs).
+    pub runtime_advisories: Vec<super::runtimes::Advisory>,
 }
 
 const BUNDLED: &str = include_str!("iocs.json");
@@ -59,6 +61,7 @@ impl Iocs {
         self.workflow_files.extend(o.workflow_files);
         self.content_markers.extend(o.content_markers);
         self.script_markers.extend(o.script_markers);
+        self.runtime_advisories.extend(o.runtime_advisories);
     }
 
     pub fn is_compromised(&self, name: &str, version: &str) -> bool {
