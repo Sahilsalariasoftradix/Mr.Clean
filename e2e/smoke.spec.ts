@@ -23,7 +23,7 @@ test("overview scans everything and shows what it found", async ({ page }) => {
   await expect(page.getByRole("button", { name: /Scan again/ })).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("Quick actions")).toBeVisible();
   await expect(page.getByText(/needs attention|in good shape|little care/)).toBeVisible();
-  await expect(page.getByText("5 issues")).toBeVisible();
+  await expect(page.getByText("6 issues")).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -77,6 +77,8 @@ test("security findings render with severity and quarantine", async ({ page }) =
   await expect(page.getByText(/need your attention/)).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("Suspicious startup item: com.apple.sysupdate")).toBeVisible();
   await expect(page.getByRole("button", { name: "Quarantine" }).first()).toBeVisible();
+  // Runtimes with known holes (Node2Shell) are listed too.
+  await expect(page.getByText("Old Node.js with Node2Shell installed by nvm")).toBeVisible();
   // One-click fixes ask first.
   await page.getByRole("main").getByRole("button", { name: "Fix", exact: true }).last().click();
   await expect(page.getByRole("dialog", { name: "Apply this fix?" })).toBeVisible();
@@ -119,5 +121,54 @@ test("settings: menu bar and automatic scans", async ({ page }) => {
   await nav(page, "Overview");
   await nav(page, "Settings");
   await expect(page.getByRole("radio", { name: "Weekly" })).toHaveAttribute("aria-checked", "true");
+  expect(errors).toEqual([]);
+});
+
+test("command palette jumps to pages and runs actions from the keyboard", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto("/");
+  // Ctrl+K (⌘K on a Mac) opens it; typing filters; Enter runs the top match.
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("dialog", { name: "Command palette" });
+  await expect(palette).toBeVisible();
+  await page.keyboard.type("malware");
+  await expect(palette.getByRole("option").first()).toHaveText(/Run security scan/);
+  await page.keyboard.press("Enter");
+  await expect(palette).toBeHidden();
+  // It opened Security and started that page's own scan.
+  await expect(page.getByText("Suspicious startup item: com.apple.sysupdate")).toBeVisible({ timeout: 10_000 });
+
+  // The sidebar button opens it too, and scan results are searchable.
+  await page.getByRole("button", { name: /^Search/ }).click();
+  await page.keyboard.type("startup item");
+  await expect(palette.getByRole("option", { name: /Suspicious startup item/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(palette).toBeHidden();
+
+  await page.keyboard.press("Control+k");
+  await page.keyboard.type("node_modules");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "Clean" })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("works in the smallest window: icon sidebar, nothing cut off sideways", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.setViewportSize({ width: 760, height: 560 });
+  await page.goto("/");
+  // The sidebar is an icon rail, but every button keeps its name.
+  await expect(page.getByText("Keep your Mac fast & safe")).toBeHidden();
+  for (const name of ["Clean", "Files", "Security", "Memory", "Settings", "Overview"]) {
+    await nav(page, name);
+    const sideways = await page.evaluate(() => {
+      const main = document.querySelector("main")!.getBoundingClientRect();
+      return [...document.querySelectorAll("main *")].filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && !(el as HTMLElement).classList.contains("blob") && r.right > main.right + 1;
+      }).length;
+    });
+    expect(sideways, `${name} spills out of the window`).toBe(0);
+  }
+  await expect(page.getByRole("button", { name: /Scan everything/ })).toBeVisible();
   expect(errors).toEqual([]);
 });

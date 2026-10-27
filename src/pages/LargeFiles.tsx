@@ -5,7 +5,7 @@ import { Badge, Button, Card, Checkbox, Chip, Empty, Modal, Page, Skeleton, Soft
 import { api } from "../lib/api";
 import { ago, bytes, percent, sepOf, tildify } from "../lib/format";
 import { isProtected } from "../lib/paths";
-import { useScanProgress, useStore } from "../lib/store";
+import { useIntent, useScanProgress, useStore } from "../lib/store";
 import type { Advice, Explanation, FileEntry, Kind, Node } from "../lib/types";
 import { platform, words } from "../lib/platform";
 
@@ -83,6 +83,7 @@ export default function LargeFiles() {
       setScanning(false);
     }
   };
+  useIntent("files", "scan", scan);
 
   const toggle = (path: string, b: number, on: boolean) =>
     setSel((s) => {
@@ -244,7 +245,7 @@ export default function LargeFiles() {
           </div>
 
           {tab === "folders" ? (
-            <div className="grid grid-cols-[minmax(0,1fr)_300px] items-start gap-5">
+            <div className="grid grid-cols-1 @4xl:grid-cols-[minmax(0,1fr)_300px] items-start gap-5">
               <Card className="overflow-hidden">
                 <div className="flex flex-wrap items-center gap-1 border-b border-line px-4 py-2.5 text-[13px]">
                   {crumbs.map((c, i) => (
@@ -381,7 +382,7 @@ function FolderPanel({ node, share, home, selected, onOpen, onSelect }: { node: 
   const total = parts.reduce((a, p) => a + p.bytes, 0);
 
   return (
-    <Card className="sticky top-4 p-5">
+    <Card className="p-5 @4xl:sticky @4xl:top-4">
       <div className="flex items-center gap-3">
         <SoftTile icon={node.is_dir ? FolderClosed : File} color="var(--c-info)" size={50} />
         <div className="min-w-0">

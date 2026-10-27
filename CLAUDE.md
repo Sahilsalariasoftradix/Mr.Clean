@@ -16,7 +16,8 @@ crates/core/        All logic, no UI. Every behaviour lives and is tested here.
   src/memory.rs     processes, dev leftovers, protected quit
   src/security/     malware checks (read-only), iocs.json, quarantine, scan_tree (CI self-scan),
                     protection.rs (OS protection checks), windows.rs (Windows startup items),
-                    autorun.rs (editor tasks on folder open, npm scripts, scripts disguised as fonts)
+                    autorun.rs (editor tasks on folder open, npm scripts, scripts disguised as fonts),
+                    runtimes.rs (Node.js/Bun versions with known RCE bugs, e.g. Node2Shell)
   src/background.rs menu bar status, automatic-scan schedule and notification rules (settings in ~/.mrclean)
   src/system.rs     dashboard info
   examples/         scan.rs (read-only CLI of every scanner), repo_scan.rs (CI malware gate)

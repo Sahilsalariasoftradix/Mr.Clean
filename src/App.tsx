@@ -1,7 +1,8 @@
-import { BrushCleaning, Cpu, FolderClosed, House, Settings as SettingsIcon, ShieldCheck, type LucideIcon } from "lucide-react";
+import { BrushCleaning, Cpu, FolderClosed, House, Search, Settings as SettingsIcon, ShieldCheck, type LucideIcon } from "lucide-react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useEffect, type ReactNode } from "react";
 
+import { CommandPalette, openPalette, paletteShortcut } from "./components/CommandPalette";
 import { cx } from "./components/ui";
 import { onSecurityUpdated, onTrayAction } from "./lib/api";
 import { StoreProvider, useStore, type Page } from "./lib/store";
@@ -30,7 +31,8 @@ function NavItem({ active, label, icon: Icon, shortcut, extra, onClick }: { acti
       aria-current={active ? "page" : undefined}
       title={shortcut ? `${label} (${shortcut})` : label}
       className={cx(
-        "relative flex h-11 w-full cursor-pointer items-center gap-3.5 rounded-[12px] px-3.5 text-[14.5px] transition-colors",
+        // Narrow windows show an icon rail; the label stays for screen readers.
+        "relative flex h-11 w-full cursor-pointer items-center justify-center gap-3.5 rounded-[12px] text-[14.5px] transition-colors lg:justify-start lg:px-3.5",
         active ? "font-semibold text-accent-text" : "text-muted hover:bg-ink/[0.04] hover:text-ink",
       )}
     >
@@ -42,8 +44,8 @@ function NavItem({ active, label, icon: Icon, shortcut, extra, onClick }: { acti
         />
       )}
       <Icon className="relative size-5" strokeWidth={active ? 2 : 1.75} aria-hidden />
-      <span className="relative flex-1 text-left">{label}</span>
-      {extra && <span className="relative">{extra}</span>}
+      <span className="sr-only relative flex-1 text-left lg:not-sr-only">{label}</span>
+      {extra && <span className="absolute right-1 top-1 lg:relative lg:right-auto lg:top-auto">{extra}</span>}
     </button>
   );
 }
@@ -96,17 +98,26 @@ function Shell() {
 
   return (
     <div className="flex h-full">
-      <aside className="flex w-[228px] shrink-0 flex-col px-3 pb-4">
+      <aside className="flex w-[76px] shrink-0 flex-col px-2 pb-4 lg:w-[228px] lg:px-3">
         <div data-tauri-drag-region className="h-11 shrink-0" />
-        <div data-tauri-drag-region className="mb-6 flex items-center gap-2.5 px-2">
+        <div data-tauri-drag-region className="mb-6 flex items-center justify-center gap-2.5 lg:justify-start lg:px-2">
           <span className="glass flex size-11 shrink-0 items-center justify-center rounded-full">
             <img src="/logo.png" alt="" className="size-8 drop-shadow-[0_3px_8px_rgba(34,197,94,0.35)]" draggable={false} />
           </span>
-          <div data-tauri-drag-region>
+          <div data-tauri-drag-region className="hidden lg:block">
             <div className="text-[18px] font-bold leading-tight tracking-[-0.01em]">Mr.Clean</div>
             <div className="whitespace-nowrap text-[11px] text-muted">Keep your {words.computer} fast &amp; safe</div>
           </div>
         </div>
+        <button
+          onClick={openPalette}
+          title={`Search (${paletteShortcut})`}
+          className="glass mb-3 flex h-10 w-full cursor-pointer items-center gap-2.5 rounded-[12px] px-3 text-[13.5px] text-muted transition-colors hover:text-ink"
+        >
+          <Search className="size-4 shrink-0" aria-hidden />
+          <span className="flex-1 text-left">Search</span>
+          <kbd className="rounded-[6px] border border-line px-1.5 text-[11px] text-faint">{paletteShortcut}</kbd>
+        </button>
         {/* One glass panel holds every destination, Settings included. */}
         <nav aria-label="Main" className="glass flex flex-col gap-1 rounded-[16px] p-1.5">
           {NAV.map((n, i) => (
@@ -129,7 +140,7 @@ function Shell() {
               }
             />
           ))}
-          <div className="mx-2 my-1 h-px bg-line" />
+          <div className="mx-1 my-1 h-px bg-line lg:mx-2" />
           <NavItem active={page === "settings"} label="Settings" icon={SettingsIcon} shortcut={`${mod},`} onClick={() => go("settings")} />
         </nav>
       </aside>
@@ -141,7 +152,8 @@ function Shell() {
           <div className="blob" style={{ width: 380, height: 380, right: -140, bottom: -120, background: "var(--c-blob-b)", animationDelay: "-9s" }} />
           <div className="blob" style={{ width: 300, height: 300, left: -120, bottom: -60, background: "var(--c-blob-c)", animationDelay: "-17s" }} />
         </div>
-        <div className="relative h-full overflow-y-auto">
+        {/* Pages size themselves to this panel (@container), not the whole window. */}
+        <div className="@container relative h-full overflow-y-auto">
           <div data-tauri-drag-region className="absolute inset-x-0 top-0 h-6" />
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
@@ -156,6 +168,7 @@ function Shell() {
           </AnimatePresence>
         </div>
       </main>
+      <CommandPalette />
 
       <div className="pointer-events-none fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2" aria-live="polite">
         <AnimatePresence>

@@ -7,8 +7,8 @@
         "title": "Mr.Clean",
         "width": 1180,
         "height": 780,
-        "minWidth": 900,
-        "minHeight": 620,
+        "minWidth": 760,
+        "minHeight": 560,
         "transparent": false,
         "center": true
       }

@@ -1,11 +1,11 @@
-import { Archive, Bug, Copy, CircleAlert, CircleCheck, CircleHelp, Wrench, ExternalLink, FileCode2, GitBranch, Info, KeyRound, Package, Power, RotateCcw, ShieldAlert, ShieldCheck, StopCircle, SquareTerminal, type LucideIcon } from "lucide-react";
+import { Archive, Bug, Copy, CircleAlert, CircleCheck, CircleHelp, Cpu, Wrench, ExternalLink, FileCode2, GitBranch, Info, KeyRound, Package, Power, RotateCcw, ShieldAlert, ShieldCheck, StopCircle, SquareTerminal, type LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Badge, Button, Card, Empty, Modal, Page, Skeleton, SoftTile, cx, type Tone } from "../components/ui";
 import { api } from "../lib/api";
 import { ago, tildify } from "../lib/format";
-import { useStore } from "../lib/store";
+import { useIntent, useStore } from "../lib/store";
 import type { Area, Finding, Fix, ProtectionCheck, QuarantineEntry, SecurityReport, Severity } from "../lib/types";
 import { platform, words } from "../lib/platform";
 
@@ -25,6 +25,7 @@ const AREA: Record<Area, { label: string; checks: string; icon: LucideIcon; colo
   shell_profile: { label: "Shell profiles", checks: ".zshrc, .bashrc and friends", icon: SquareTerminal, color: "var(--c-teal)" },
   git: { label: "Git", checks: "Hooks, identity and commits", icon: GitBranch, color: "var(--c-info)" },
   secrets: { label: "Exposed tokens", checks: "Tokens in dotfiles and shell history", icon: KeyRound, color: "var(--c-warn)" },
+  runtimes: { label: "Runtimes", checks: "Node.js and Bun versions with known security holes (Node2Shell)", icon: Cpu, color: "var(--c-info)" },
 };
 
 export default function Security() {
@@ -70,6 +71,7 @@ export default function Security() {
       setScanning(false);
     }
   };
+  useIntent("security", "scan", scan);
 
   const doQuarantine = async (f: Finding) => {
     try {
@@ -149,9 +151,9 @@ export default function Security() {
               style={{ background: `radial-gradient(circle, color-mix(in srgb, ${serious ? "var(--c-danger)" : "var(--c-safe)"} 22%, transparent), transparent 65%)` }}
               aria-hidden
             />
-            <div className="relative flex items-center gap-4">
+            <div className="relative flex flex-wrap items-center gap-4">
               <SoftTile icon={serious > 0 ? ShieldAlert : ShieldCheck} color={serious > 0 ? "var(--c-danger)" : "var(--c-safe)"} size={56} round />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-[240px] flex-1">
                 <div className="text-[20px] font-bold tracking-[-0.01em]">{serious > 0 ? `${serious} item${serious > 1 ? "s" : ""} need your attention` : "No threats found"}</div>
                 <div className="text-[12.5px] text-muted">
                   {security.scanned_repos} git repos, {security.scanned_projects} projects and {security.scanned_packages.toLocaleString()} npm packages checked in{" "}
@@ -195,7 +197,7 @@ export default function Security() {
 
           {checks && checks.length > 0 && <Protection checks={checks} />}
 
-          <div className="grid grid-cols-[minmax(0,1fr)_280px] items-start gap-5">
+          <div className="grid grid-cols-1 @4xl:grid-cols-[minmax(0,1fr)_280px] items-start gap-5">
             <Card className="divide-y divide-line overflow-hidden">
               {visible.length === 0 && (
                 <div className="flex flex-col items-center gap-2 py-10 text-center text-[13px] text-muted">
@@ -296,7 +298,7 @@ function Protection({ checks }: { checks: ProtectionCheck[] }) {
           {off ? `${off} to review` : "All protections on"}
         </span>
       </div>
-      <ul className="grid grid-cols-3 gap-2">
+      <ul className="grid grid-cols-1 gap-2 @2xl:grid-cols-2 @5xl:grid-cols-3">
         {checks.map((c) => {
           const st = CHECK_STATE[c.state];
           return (
@@ -349,7 +351,7 @@ function Protection({ checks }: { checks: ProtectionCheck[] }) {
 function Checked({ report }: { report: SecurityReport }) {
   const issues = (a: Area) => report.findings.filter((f) => f.area === a && f.severity !== "info").length;
   return (
-    <Card className="sticky top-4 p-4">
+    <Card className="p-4 @4xl:sticky @4xl:top-4">
       <h2 className="mb-2 text-[15px] font-semibold">What we checked</h2>
       <ul className="space-y-0.5">
         {(Object.keys(AREA) as Area[]).map((a) => {

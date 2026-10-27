@@ -48,6 +48,8 @@ pub struct Discovered {
     pub scripts: Vec<PathBuf>,
     /// Fonts, images and media: checked for scripts renamed to look like them.
     pub assets: Vec<PathBuf>,
+    /// `.nvmrc`, `.node-version`, `.tool-versions` and Dockerfiles: pinned runtime versions.
+    pub runtime_pins: Vec<PathBuf>,
     pub projects: usize,
 }
 
@@ -118,6 +120,13 @@ pub fn discover(env: &Env, roots: &[PathBuf], iocs: &Iocs, cancel: &Cancel) -> D
             }
             let in_vscode = path.parent().is_some_and(|p| p.ends_with(".vscode"));
             let ext = extension(&name);
+            let pins_runtime = matches!(name.as_str(), ".nvmrc" | ".node-version" | ".tool-versions")
+                || name.starts_with("Dockerfile")
+                || name.ends_with(".Dockerfile")
+                || name.ends_with(".dockerfile");
+            if pins_runtime {
+                d.runtime_pins.push(path.clone());
+            }
             if in_vscode && (name == "tasks.json" || name == "settings.json") {
                 d.editor_files.push(path.clone());
             } else if is_js_config(&name) {

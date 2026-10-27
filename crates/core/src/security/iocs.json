@@ -43,5 +43,21 @@
     "0x1eef0849eda15d87f64e51c73c8442cf3c8bcef3",
     "q4FZkxX{!h,Sr3=@",
     "y-p_>d$0B&@^1aQk"
+  ],
+  "runtime_advisories": [
+    {
+      "runtime": "node",
+      "id": "CVE-2026-111497",
+      "name": "Node2Shell",
+      "summary": "Its built-in Brotli decoder can be made to write past a buffer, so any program that unpacks Brotli data from the internet (fetch(), Express 5, body-parser 2) can be taken over remotely. Fixed in Node.js 22.23.4, 24.22.1 and 26.12.1 (21 October 2026).",
+      "fixed": ["22.23.4", "24.22.1", "26.12.1"]
+    },
+    {
+      "runtime": "bun",
+      "id": "CVE-2026-111497",
+      "name": "Node2Shell",
+      "summary": "Bun bundles the same Brotli decoder bug as Node.js, so a crafted Brotli response or request can take over a program running on it. Fixed in Bun 1.4.4.",
+      "fixed": ["1.4.4"]
+    }
   ]
 }

@@ -6,7 +6,7 @@ import { AppIcon } from "../components/AppIcon";
 import { AnimatedNumber, Badge, Button, Card, Checkbox, Chip, Empty, Modal, Page, Skeleton, SoftTile, cx, type Tone } from "../components/ui";
 import { api } from "../lib/api";
 import { ago, baseName, bytes, parentOf, tildify } from "../lib/format";
-import { useScanProgress, useStore } from "../lib/store";
+import { useIntent, useScanProgress, useStore } from "../lib/store";
 import { CHIPS, CHIP_LABEL, chipOf, toolOf, type ChipId } from "../lib/tools";
 import type { CleanRequest, NodeModulesHit, RuleScan, Safety } from "../lib/types";
 import { words } from "../lib/platform";
@@ -60,6 +60,7 @@ export default function Cleaner() {
       setScanning(false);
     }
   };
+  useIntent("clean", "scan", scan);
 
   const selected = useMemo(() => {
     if (!cleaner) return { bytes: 0, count: 0, requests: [] as CleanRequest[], lines: [] as { name: string; bytes: number; permanent: boolean }[], password: false };
@@ -127,7 +128,7 @@ export default function Cleaner() {
         )
       }
     >
-      <div className="grid grid-cols-[minmax(0,1fr)_300px] items-start gap-5">
+      <div className="grid grid-cols-1 @4xl:grid-cols-[minmax(0,1fr)_300px] items-start gap-5">
         <div className="min-w-0">
           {scanning && (
             <Card className="p-5">
@@ -160,9 +161,9 @@ export default function Cleaner() {
               {/* Summary: how much is selected, and the one primary action. */}
               <Card className="relative mb-4 overflow-hidden p-5">
                 <div className="pointer-events-none absolute -right-10 -top-16 size-48 rounded-full bg-[radial-gradient(circle,rgba(74,222,128,0.35),transparent_65%)]" aria-hidden />
-                <div className="relative flex items-center gap-4">
+                <div className="relative flex flex-wrap items-center gap-4">
                   <SoftTile icon={BrushCleaning} color="var(--c-accent)" size={58} round />
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-[220px] flex-1">
                     <div className="text-[30px] font-bold leading-none tracking-[-0.02em]">
                       <AnimatedNumber value={selected.bytes} format={bytes} />
                     </div>
@@ -404,6 +405,7 @@ function NodeModulesPanel() {
       setBusy(false);
     }
   };
+  useIntent("clean", "find_node_modules", () => find());
   const remove = async () => {
     setRemoving(true);
     try {
@@ -423,7 +425,7 @@ function NodeModulesPanel() {
   const total = list.reduce((a, h) => a + h.bytes, 0);
 
   return (
-    <Card className="sticky top-4 p-4">
+    <Card className="p-4 @4xl:sticky @4xl:top-4">
       <div className="mb-1 flex items-start justify-between gap-2">
         <h2 className="text-[15px] font-semibold">Old node_modules</h2>
         <select
