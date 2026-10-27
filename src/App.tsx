@@ -1,7 +1,8 @@
-import { BrushCleaning, Cpu, FolderClosed, House, Settings as SettingsIcon, ShieldCheck, type LucideIcon } from "lucide-react";
+import { BrushCleaning, Cpu, FolderClosed, House, Search, Settings as SettingsIcon, ShieldCheck, type LucideIcon } from "lucide-react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useEffect, type ReactNode } from "react";
 
+import { CommandPalette, openPalette, paletteShortcut } from "./components/CommandPalette";
 import { cx } from "./components/ui";
 import { StoreProvider, useStore, type Page } from "./lib/store";
 import Cleaner from "./pages/Cleaner";
@@ -92,6 +93,15 @@ function Shell() {
             <div className="whitespace-nowrap text-[11px] text-muted">Keep your {words.computer} fast &amp; safe</div>
           </div>
         </div>
+        <button
+          onClick={openPalette}
+          title={`Search (${paletteShortcut})`}
+          className="glass mb-3 flex h-10 w-full cursor-pointer items-center gap-2.5 rounded-[12px] px-3 text-[13.5px] text-muted transition-colors hover:text-ink"
+        >
+          <Search className="size-4 shrink-0" aria-hidden />
+          <span className="flex-1 text-left">Search</span>
+          <kbd className="rounded-[6px] border border-line px-1.5 text-[11px] text-faint">{paletteShortcut}</kbd>
+        </button>
         {/* One glass panel holds every destination, Settings included. */}
         <nav aria-label="Main" className="glass flex flex-col gap-1 rounded-[16px] p-1.5">
           {NAV.map((n, i) => (
@@ -142,6 +152,7 @@ function Shell() {
           </AnimatePresence>
         </div>
       </main>
+      <CommandPalette />
 
       <div className="pointer-events-none fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2" aria-live="polite">
         <AnimatePresence>

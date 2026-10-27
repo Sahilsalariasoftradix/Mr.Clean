@@ -5,7 +5,7 @@ import { Badge, Button, Card, Checkbox, Chip, Empty, Modal, Page, Skeleton, Soft
 import { api } from "../lib/api";
 import { ago, bytes, percent, sepOf, tildify } from "../lib/format";
 import { isProtected } from "../lib/paths";
-import { useScanProgress, useStore } from "../lib/store";
+import { useIntent, useScanProgress, useStore } from "../lib/store";
 import type { Advice, Explanation, FileEntry, Kind, Node } from "../lib/types";
 import { platform, words } from "../lib/platform";
 
@@ -83,6 +83,7 @@ export default function LargeFiles() {
       setScanning(false);
     }
   };
+  useIntent("files", "scan", scan);
 
   const toggle = (path: string, b: number, on: boolean) =>
     setSel((s) => {

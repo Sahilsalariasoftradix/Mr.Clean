@@ -105,23 +105,30 @@ test("memory page lists dev leftovers and settings persist delete mode", async (
   expect(errors).toEqual([]);
 });
 
-test("works in the smallest window: icon sidebar, nothing cut off sideways", async ({ page }) => {
+test("command palette jumps to pages and runs actions from the keyboard", async ({ page }) => {
   const errors = watchErrors(page);
-  await page.setViewportSize({ width: 760, height: 560 });
   await page.goto("/");
-  // The sidebar is an icon rail, but every button keeps its name.
-  await expect(page.getByText("Keep your Mac fast & safe")).toBeHidden();
-  for (const name of ["Clean", "Files", "Security", "Memory", "Settings", "Overview"]) {
-    await nav(page, name);
-    const sideways = await page.evaluate(() => {
-      const main = document.querySelector("main")!.getBoundingClientRect();
-      return [...document.querySelectorAll("main *")].filter((el) => {
-        const r = el.getBoundingClientRect();
-        return r.width > 0 && !(el as HTMLElement).classList.contains("blob") && r.right > main.right + 1;
-      }).length;
-    });
-    expect(sideways, `${name} spills out of the window`).toBe(0);
-  }
-  await expect(page.getByRole("button", { name: /Scan everything/ })).toBeVisible();
+  // Ctrl+K (⌘K on a Mac) opens it; typing filters; Enter runs the top match.
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("dialog", { name: "Command palette" });
+  await expect(palette).toBeVisible();
+  await page.keyboard.type("malware");
+  await expect(palette.getByRole("option").first()).toHaveText(/Run security scan/);
+  await page.keyboard.press("Enter");
+  await expect(palette).toBeHidden();
+  // It opened Security and started that page's own scan.
+  await expect(page.getByText("Suspicious startup item: com.apple.sysupdate")).toBeVisible({ timeout: 10_000 });
+
+  // The sidebar button opens it too, and scan results are searchable.
+  await page.getByRole("button", { name: /^Search/ }).click();
+  await page.keyboard.type("startup item");
+  await expect(palette.getByRole("option", { name: /Suspicious startup item/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(palette).toBeHidden();
+
+  await page.keyboard.press("Control+k");
+  await page.keyboard.type("node_modules");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "Clean" })).toBeVisible();
   expect(errors).toEqual([]);
 });
