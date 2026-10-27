@@ -23,10 +23,10 @@ export const toneFill: Record<Tone, string> = {
 /** A page: big title + subtitle on the left, actions on the right. */
 export function Page({ title, subtitle, actions, children }: { title: string; subtitle?: ReactNode; actions?: ReactNode; children: ReactNode }) {
   return (
-    <div className="mx-auto max-w-[1180px] px-8 pb-8 pt-6">
-      <header data-tauri-drag-region className="mb-5 flex items-start gap-4">
-        <div data-tauri-drag-region className="min-w-0 flex-1">
-          <h1 className="text-[28px] font-bold leading-tight tracking-[-0.03em]">{title}</h1>
+    <div className="mx-auto max-w-[1280px] px-5 pb-8 pt-5 @3xl:px-8 @3xl:pt-6">
+      <header data-tauri-drag-region className="mb-5 flex flex-wrap items-start gap-x-4 gap-y-3">
+        <div data-tauri-drag-region className="min-w-[240px] flex-1">
+          <h1 className="text-[24px] font-bold leading-tight tracking-[-0.03em] @3xl:text-[28px]">{title}</h1>
           {subtitle && <p className="mt-1 max-w-[75ch] text-[14px] text-muted">{subtitle}</p>}
         </div>
         {actions && <div className="flex shrink-0 items-center gap-2 pt-1">{actions}</div>}

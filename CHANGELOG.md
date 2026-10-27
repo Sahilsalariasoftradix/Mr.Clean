@@ -4,6 +4,9 @@ All notable changes to Mr.Clean. Versions follow [Semantic Versioning](https://s
 
 ## Unreleased
 
+### Design
+- Works at any window size: the sidebar becomes an icon rail in narrow windows, side panels move below the main list, the Overview stacks and moves its stat bubbles under the storage orb when space is tight, and wide windows use the extra room. The window can now be as small as 760×560.
+
 ### Security
 - New checks for the attack found in a pull request to this repo (a contributor's machine was compromised and the malware force-pushed itself into their branch):
   - VS Code / Cursor tasks set to run when a folder is opened (`runOn: folderOpen`), especially hidden ones, in projects and in your editor's own settings.

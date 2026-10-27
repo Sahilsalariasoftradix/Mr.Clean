@@ -102,3 +102,24 @@ test("memory page lists dev leftovers and settings persist delete mode", async (
   await expect(page.getByText(/items are deleted permanently/)).toBeVisible({ timeout: 10_000 });
   expect(errors).toEqual([]);
 });
+
+test("works in the smallest window: icon sidebar, nothing cut off sideways", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.setViewportSize({ width: 760, height: 560 });
+  await page.goto("/");
+  // The sidebar is an icon rail, but every button keeps its name.
+  await expect(page.getByText("Keep your Mac fast & safe")).toBeHidden();
+  for (const name of ["Clean", "Files", "Security", "Memory", "Settings", "Overview"]) {
+    await nav(page, name);
+    const sideways = await page.evaluate(() => {
+      const main = document.querySelector("main")!.getBoundingClientRect();
+      return [...document.querySelectorAll("main *")].filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && !(el as HTMLElement).classList.contains("blob") && r.right > main.right + 1;
+      }).length;
+    });
+    expect(sideways, `${name} spills out of the window`).toBe(0);
+  }
+  await expect(page.getByRole("button", { name: /Scan everything/ })).toBeVisible();
+  expect(errors).toEqual([]);
+});

@@ -9,6 +9,7 @@ import { api } from "../lib/api";
 import { loadFdaDismissed, showOverviewFdaHint } from "../lib/fda";
 import { bytes } from "../lib/format";
 import { greeting, health } from "../lib/health";
+import { orbLayout } from "../lib/layout";
 import { platform, words } from "../lib/platform";
 import { useStore, type ScanStep } from "../lib/store";
 import type { SystemInfo } from "../lib/types";
@@ -32,16 +33,18 @@ export default function Overview() {
   const [info, setInfo] = useState<SystemInfo | null>(null);
   const [fdaHint, setFdaHint] = useState(false);
 
-  // Size the orb to the space left between the four stat bubbles.
+  // Size the orb to the space left between the four stat bubbles. When that's
+  // too tight, the bubbles move into a grid under the orb instead.
   const stage = useRef<HTMLDivElement>(null);
-  const [orbSize, setOrbSize] = useState(340);
+  const [stageWidth, setStageWidth] = useState(640);
   useEffect(() => {
     const el = stage.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => setOrbSize(Math.max(260, Math.min(360, e.contentRect.width - 130, e.contentRect.height))));
+    const ro = new ResizeObserver(([e]) => setStageWidth(e.contentRect.width));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+  const { compact, orbSize } = orbLayout(stageWidth);
 
   useEffect(() => {
     api.systemInfo().then(setInfo).catch(() => {});
@@ -87,12 +90,12 @@ export default function Overview() {
   }, words.computer);
 
   return (
-    <motion.div className="mx-auto max-w-[1180px] px-8 pb-6 pt-6" variants={stagger} initial="hidden" animate="show">
-      {/* Header: greeting + dynamic headline, and the device card. */}
-      <motion.div variants={rise} className="mb-2 grid grid-cols-[minmax(0,1fr)_minmax(0,440px)] items-start gap-6">
+    <motion.div className="mx-auto max-w-[1280px] px-5 pb-6 pt-5 @3xl:px-8 @3xl:pt-6" variants={stagger} initial="hidden" animate="show">
+      {/* Header: greeting + dynamic headline, and the device card (below it when narrow). */}
+      <motion.div variants={rise} className="mb-2 grid grid-cols-1 items-start gap-4 @4xl:grid-cols-[minmax(0,1fr)_minmax(0,440px)] @4xl:gap-6">
         <div data-tauri-drag-region className="pt-1">
           <div className="text-[11.5px] font-semibold uppercase tracking-[0.16em] text-muted">{greeting()}</div>
-          <h1 className="mt-1.5 text-[34px] font-bold leading-[1.1] tracking-[-0.03em]">{h.headline}</h1>
+          <h1 className="mt-1.5 text-[28px] font-bold leading-[1.1] tracking-[-0.03em] @3xl:text-[34px]">{h.headline}</h1>
           <p className="mt-2 text-[15px] text-muted">{h.reason}</p>
         </div>
         <Card className="flex min-w-0 items-center gap-4 py-3 pl-4 pr-3">
@@ -119,24 +122,26 @@ export default function Overview() {
         </Card>
       </motion.div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_440px] gap-6">
+      <div className="grid grid-cols-1 gap-6 @4xl:grid-cols-[minmax(0,1fr)_minmax(0,440px)]">
         {/* Left: the storage orb with the four headline numbers around it. */}
         <motion.div variants={rise} className="flex flex-col">
-          <div ref={stage} className="relative mx-auto h-[350px] w-full max-w-[640px]">
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <div ref={stage} className={cx("relative mx-auto w-full max-w-[640px]", compact ? "flex flex-col items-center gap-4 pb-2" : "h-[350px]")}>
+            <div className={compact ? "" : "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"}>
               <StorageOrb used={used} total={disk?.total_bytes ?? null} size={orbSize} />
             </div>
-            <Bubble className="left-0 top-2" icon={Code} color="var(--c-accent)" label="Developer caches" value={cleaner ? bytes(cleaner.total_bytes) : "—"} sub={cleaner ? "Can be cleaned" : "Not scanned"} />
-            <Bubble className="right-0 top-2" icon={FolderClosed} color="var(--c-info)" label="Large files" value={bigBytes !== null ? bytes(bigBytes) : "—"} sub={bigFiles ? `${bigFiles.length} over 500 MB` : "Not scanned"} />
-            <Bubble className="bottom-2 left-0" icon={Cpu} color="var(--c-teal)" label="Memory" value={mem ? bytes(mem.used_bytes) : "—"} sub="In use" />
-            <Bubble
-              className="bottom-2 right-0"
-              icon={ShieldCheck}
-              color={threats ? "var(--c-danger)" : "var(--c-safe)"}
-              label="Threats"
-              value={threats !== null ? String(threats) : "—"}
-              sub={threats === null ? "Not scanned" : threats === 0 ? "No issues" : "Need attention"}
-            />
+            <div className={compact ? "grid w-full grid-cols-2 gap-x-4 gap-y-3" : "contents"}>
+              <Bubble className={compact ? "" : "absolute left-0 top-2"} icon={Code} color="var(--c-accent)" label="Developer caches" value={cleaner ? bytes(cleaner.total_bytes) : "—"} sub={cleaner ? "Can be cleaned" : "Not scanned"} />
+              <Bubble className={compact ? "" : "absolute right-0 top-2"} icon={FolderClosed} color="var(--c-info)" label="Large files" value={bigBytes !== null ? bytes(bigBytes) : "—"} sub={bigFiles ? `${bigFiles.length} over 500 MB` : "Not scanned"} />
+              <Bubble className={compact ? "" : "absolute bottom-2 left-0"} icon={Cpu} color="var(--c-teal)" label="Memory" value={mem ? bytes(mem.used_bytes) : "—"} sub="In use" />
+              <Bubble
+                className={compact ? "" : "absolute bottom-2 right-0"}
+                icon={ShieldCheck}
+                color={threats ? "var(--c-danger)" : "var(--c-safe)"}
+                label="Threats"
+                value={threats !== null ? String(threats) : "—"}
+                sub={threats === null ? "Not scanned" : threats === 0 ? "No issues" : "Need attention"}
+              />
+            </div>
           </div>
 
           <ScanButtons scanning={scanning} scanned={scanned} steps={scan} junk={cleaner?.total_bytes ?? null} onScan={scanEverything} onReview={() => go("clean")} />
@@ -228,7 +233,7 @@ export default function Overview() {
               View all tools <ChevronRight className="size-3.5" aria-hidden />
             </button>
           </div>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3 @3xl:grid-cols-4">
             <Quick icon={BrushCleaning} color="var(--c-accent)" title="Clean developer caches" detail="Remove Xcode, Android, npm and more." onClick={() => go("clean")} />
             <Quick icon={FolderClosed} color="var(--c-info)" title="Find large files" detail="Discover and remove big files and folders." onClick={() => go("files")} />
             <Quick icon={Cpu} color="var(--c-purple)" title="Free memory" detail="Quit dev processes using RAM." onClick={() => go("memory")} />
@@ -242,12 +247,12 @@ export default function Overview() {
 
 function Bubble({ className, icon, color, label, value, sub }: { className: string; icon: LucideIcon; color: string; label: string; value: string; sub: string }) {
   return (
-    <div className={cx("absolute flex items-center gap-3", className)}>
+    <div className={cx("flex min-w-0 items-center gap-3", className)}>
       <span className="glass flex size-[54px] items-center justify-center rounded-full">
         <Tile icon={icon} color={color} size={42} round />
       </span>
-      <div>
-        <div className="text-[12px] text-muted">{label}</div>
+      <div className="min-w-0">
+        <div className="truncate text-[12px] text-muted">{label}</div>
         <div className="tabular text-[19px] font-bold leading-tight">{value}</div>
         <div className="text-[11.5px] text-faint">{sub}</div>
       </div>
