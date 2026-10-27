@@ -132,19 +132,34 @@ fn home_dir() -> String {
 /// macOS hides parts of ~/Library until the app has Full Disk Access.
 #[tauri::command]
 fn has_full_disk_access() -> bool {
-    if !cfg!(target_os = "macos") {
-        return true;
+    system::has_full_disk_access(&Env::detect().home)
+}
+
+/// Bundle id and path so the user can toggle the right Full Disk Access entry
+/// when `tauri dev` leaves several "Mr.Clean" rows in Privacy settings.
+#[derive(Serialize)]
+struct AppIdentity {
+    bundle_id: String,
+    path: String,
+}
+
+#[tauri::command]
+fn app_identity(app: AppHandle) -> AppIdentity {
+    let exe = std::env::current_exe().ok();
+    let path = exe
+        .as_ref()
+        .map(|p| {
+            p.ancestors()
+                .find(|a| a.extension().is_some_and(|e| e == "app"))
+                .unwrap_or(p)
+                .display()
+                .to_string()
+        })
+        .unwrap_or_else(|| "unknown".into());
+    AppIdentity {
+        bundle_id: app.config().identifier.clone(),
+        path,
     }
-    let home = Env::detect().home;
-    [
-        "Library/Safari",
-        "Library/Mail",
-        "Library/Application Support/com.apple.TCC",
-    ]
-    .iter()
-    .map(|p| home.join(p))
-    .filter(|p| p.exists())
-    .all(|p| std::fs::read_dir(p).is_ok())
 }
 
 #[tauri::command]
@@ -340,6 +355,7 @@ pub fn run() {
             home_dir,
             folder_explain,
             has_full_disk_access,
+            app_identity,
             open_full_disk_access_settings,
             open_settings,
             protection_checks,
