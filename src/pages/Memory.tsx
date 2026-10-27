@@ -117,7 +117,7 @@ export default function Memory() {
         </Button>
       }
     >
-      <div className="mb-5 grid grid-cols-[minmax(0,1.25fr)_minmax(0,1.4fr)_190px] gap-4">
+      <div className="mb-5 grid grid-cols-1 gap-4 @3xl:grid-cols-2 @5xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1.4fr)_190px]">
         <Card className="p-4">
           <h2 className="mb-3 text-[14px] font-semibold">Memory usage</h2>
           <div className="flex items-center gap-5">
@@ -158,7 +158,7 @@ export default function Memory() {
           </div>
         </Card>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex gap-4 @3xl:col-span-2 @5xl:col-span-1 @5xl:flex-col">
           <Card className="flex flex-1 items-center gap-3 p-4">
             <IconTile color="var(--c-info)" size={40}>
               <HardDriveDownload className="size-5" aria-hidden />
@@ -189,7 +189,7 @@ export default function Memory() {
             return (
               <motion.li
                 key={g.app}
-                className="grid grid-cols-[28px_minmax(0,1fr)_110px_minmax(80px,1.2fr)_80px_96px] items-center gap-3 px-1 py-2"
+                className="grid grid-cols-[28px_minmax(0,1fr)_80px_96px] items-center gap-3 px-1 py-2 @3xl:grid-cols-[28px_minmax(0,1fr)_110px_minmax(80px,1.2fr)_80px_96px]"
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(i, 8) * 0.03 }}
@@ -198,10 +198,10 @@ export default function Memory() {
                 <span className="truncate text-[13.5px] font-medium" title={g.app}>
                   {g.app}
                 </span>
-                <span className="text-[12px] text-faint">
+                <span className="hidden text-[12px] text-faint @3xl:block">
                   {g.process_count} process{g.process_count > 1 ? "es" : ""}
                 </span>
-                <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+                <div className="hidden h-1.5 overflow-hidden rounded-full bg-surface-2 @3xl:block">
                   <motion.div className="h-full rounded-full bg-info" initial={{ width: 0 }} animate={{ width: `${percent(g.memory_bytes, top)}%` }} transition={{ duration: 0.6 }} />
                 </div>
                 <span className="tabular text-right text-[13px] font-semibold">{bytes(g.memory_bytes)}</span>

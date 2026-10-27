@@ -4,6 +4,9 @@ All notable changes to Mr.Clean. Versions follow [Semantic Versioning](https://s
 
 ## Unreleased
 
+### Design
+- Works at any window size: the sidebar becomes an icon rail in narrow windows, side panels move below the main list, the Overview stacks and moves its stat bubbles under the storage orb when space is tight, and wide windows use the extra room. The window can now be as small as 760×560.
+
 ### Security
 - **Node2Shell (CVE-2026-111497):** flags Node.js and Bun versions with the Brotli remote-code-execution bug (fixed in Node.js 22.23.4, 24.22.1, 26.12.1 and Bun 1.4.4). It checks the version you run by default, every version installed by nvm, fnm, Volta, asdf, mise, n or Homebrew, and versions pinned in projects (`.nvmrc`, `.node-version`, `.tool-versions`, Volta pins, Dockerfiles, CI workflows). New advisories can be added to `iocs.json` without a new build.
 - New checks for the attack found in a pull request to this repo (a contributor's machine was compromised and the malware force-pushed itself into their branch):
