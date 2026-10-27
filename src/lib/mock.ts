@@ -144,6 +144,7 @@ const security = () => ({
     { id: "2", severity: "high", area: "project_code", title: "Suspicious code in a project config file", detail: "This config file hides code far to the right behind a wall of spaces. Fake job-interview projects (Contagious Interview / BeaverTail) hide malware in files like this.", path: `${HOME}/projects/test-task/tailwind.config.js`, line: 14, evidence: "module.exports = {…};                                        eval(atob('Y29uc3Qg…'))", advice: "Don't run npm install / npm start in this project until you've checked the file.", can_quarantine: false, fix: null },
     { id: "3", severity: "medium", area: "git", title: "Suspicious git hook", detail: "This repository hook pushes code to a remote on its own.", path: `${HOME}/projects/shop/.git/hooks/post-commit`, line: 2, evidence: "git push -f origin HEAD >/dev/null 2>&1 &", advice: "Hooks run automatically on commit/push. If you didn't add this, quarantine it.", can_quarantine: true, fix: null },
     { id: "4", severity: "medium", area: "secrets", title: "npm token saved in plain text", detail: "~/.npmrc holds a publish token. npm worms read this file to publish malware under your name.", path: `${HOME}/.npmrc`, line: 1, evidence: "npm_abcd…", advice: "Use a short-lived or read-only token, and enable 2FA for publishing.", can_quarantine: false, fix: null },
+    { id: "9", severity: "medium", area: "runtimes", title: "Old Node.js with Node2Shell installed by nvm", detail: "Node.js 20.19.0, 24.22.0 installed by nvm have CVE-2026-111497. Its built-in Brotli decoder can be made to write past a buffer, so any program that unpacks Brotli data from the internet (fetch(), Express 5, body-parser 2) can be taken over remotely. Fixed in Node.js 22.23.4, 24.22.1 and 26.12.1 (21 October 2026).", path: null, line: null, evidence: "20.19.0, 24.22.0", advice: "Update to 24.22.1 or later. Remove versions you no longer use (nvm uninstall <version>).", can_quarantine: false, fix: null },
     { id: "8", severity: "medium", area: "secrets", title: "Git saves passwords in plain text", detail: "credential.helper=store keeps your GitHub token unencrypted in ~/.git-credentials.", path: `${HOME}/.git-credentials`, line: null, evidence: null, advice: "Use the Keychain instead: git config --global credential.helper osxkeychain", can_quarantine: false, fix: "use_keychain_credentials" },
     { id: "5", severity: "low", area: "git", title: "Repository commits under a different email", detail: "Commits in this repo are signed as <someone@else.com>, not your usual <you@company.com>.", path: `${HOME}/projects/api`, line: null, evidence: null, advice: null, can_quarantine: false, fix: null },
     { id: "6", severity: "info", area: "git", title: "Your git identity", detail: "New commits are signed as Demo User <you@company.com>. If this isn't you, something changed your git config.", path: null, line: null, evidence: null, advice: null, can_quarantine: false, fix: null },
@@ -153,7 +154,7 @@ const security = () => ({
   scanned_projects: 41,
   scanned_packages: 18_230,
   duration_ms: 4210,
-  counts: { high: 2, medium: 3, low: 1, info: 2 },
+  counts: { high: 2, medium: 4, low: 1, info: 2 },
 });
 
 const deleted = (paths: string[]) => ({ removed: paths.map((p) => ({ path: p, bytes: 1.5 * GB })), failed: [], bytes_freed: paths.length * 1.5 * GB });

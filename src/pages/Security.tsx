@@ -1,4 +1,4 @@
-import { Archive, Bug, Copy, CircleAlert, CircleCheck, CircleHelp, Wrench, ExternalLink, FileCode2, GitBranch, Info, KeyRound, Package, Power, RotateCcw, ShieldAlert, ShieldCheck, StopCircle, SquareTerminal, type LucideIcon } from "lucide-react";
+import { Archive, Bug, Copy, CircleAlert, CircleCheck, CircleHelp, Cpu, Wrench, ExternalLink, FileCode2, GitBranch, Info, KeyRound, Package, Power, RotateCcw, ShieldAlert, ShieldCheck, StopCircle, SquareTerminal, type LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -25,6 +25,7 @@ const AREA: Record<Area, { label: string; checks: string; icon: LucideIcon; colo
   shell_profile: { label: "Shell profiles", checks: ".zshrc, .bashrc and friends", icon: SquareTerminal, color: "var(--c-teal)" },
   git: { label: "Git", checks: "Hooks, identity and commits", icon: GitBranch, color: "var(--c-info)" },
   secrets: { label: "Exposed tokens", checks: "Tokens in dotfiles and shell history", icon: KeyRound, color: "var(--c-warn)" },
+  runtimes: { label: "Runtimes", checks: "Node.js and Bun versions with known security holes (Node2Shell)", icon: Cpu, color: "var(--c-info)" },
 };
 
 export default function Security() {

@@ -182,7 +182,7 @@ export interface QuitResult {
 }
 
 export type Severity = "info" | "low" | "medium" | "high";
-export type Area = "known_malware" | "npm" | "git" | "startup" | "shell_profile" | "secrets" | "project_code";
+export type Area = "known_malware" | "npm" | "git" | "startup" | "shell_profile" | "secrets" | "project_code" | "runtimes";
 
 export interface Finding {
   id: string;
