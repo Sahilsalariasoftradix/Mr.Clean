@@ -14,6 +14,7 @@ mod npm;
 pub mod patterns;
 mod persistence;
 pub mod protection;
+pub mod runtimes;
 mod shell;
 mod windows;
 
@@ -45,6 +46,7 @@ pub enum Area {
     ShellProfile,
     Secrets,
     ProjectCode,
+    Runtimes,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -210,9 +212,16 @@ pub fn scan(env: &Env, roots: &[PathBuf], cancel: &Cancel) -> SecurityReport {
     f.extend(shell::scan(env));
     f.extend(autorun::user_editor_tasks(env, &iocs));
     // Only the real machine's processes; sandboxed scans (tests) never look.
-    if dirs::home_dir().is_some_and(|h| h == env.home) {
+    let real_machine = dirs::home_dir().is_some_and(|h| h == env.home);
+    if real_machine {
         f.extend(autorun::running_loaders(&autorun::process_command_lines(), &iocs));
     }
+    let default_runtimes = if real_machine { runtimes::on_path() } else { Vec::new() };
+    f.extend(runtimes::installed_findings(
+        &runtimes::installed(env),
+        &default_runtimes,
+        &iocs,
+    ));
     if cancel.is_cancelled() {
         return finish(f, 0, 0, 0, started);
     }
@@ -222,6 +231,7 @@ pub fn scan(env: &Env, roots: &[PathBuf], cancel: &Cancel) -> SecurityReport {
     f.extend(npm_findings);
     f.extend(discover::findings(&found, &iocs));
     f.extend(autorun::findings(&found, &iocs));
+    f.extend(runtimes::project_findings(&found, &iocs));
     finish(f, found.repos.len(), found.projects, packages, started)
 }
 
@@ -248,6 +258,7 @@ pub fn scan_tree(root: &Path, cancel: &Cancel) -> SecurityReport {
     f.extend(npm_findings);
     f.extend(discover::findings(&found, &iocs));
     f.extend(autorun::findings(&found, &iocs));
+    f.extend(runtimes::project_findings(&found, &iocs));
     let _ = std::fs::remove_dir_all(&sandbox);
     finish(f, found.repos.len(), found.projects, packages, started)
 }
