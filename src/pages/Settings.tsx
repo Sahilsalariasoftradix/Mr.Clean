@@ -1,12 +1,13 @@
-import { CircleCheck, HardDrive, Lock, ShieldAlert, Trash2, type LucideIcon } from "lucide-react";
+import { BellRing, CircleCheck, HardDrive, Lock, ShieldAlert, Trash2, type LucideIcon } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
-import { Button, Card, Page, SoftTile, cx } from "../components/ui";
+import { Button, Card, Checkbox, Page, Segmented, SoftTile, cx } from "../components/ui";
 import { api, inTauri, openFullDiskAccessSettings } from "../lib/api";
+import { ago } from "../lib/format";
 import { fdaUiState, loadFdaDismissed, saveFdaDismissed } from "../lib/fda";
 import { platform, words } from "../lib/platform";
 import { useStore } from "../lib/store";
-import type { AppIdentity, DeleteMode } from "../lib/types";
+import type { AppIdentity, BackgroundSettings, DeleteMode, Schedule } from "../lib/types";
 
 function Section({ icon, color, title, children }: { icon: LucideIcon; color: string; title: string; children: ReactNode }) {
   return (
@@ -94,6 +95,8 @@ export default function Settings() {
           </div>
         </Section>
 
+        <BackgroundSection />
+
         {platform === "mac" && (
           <Section icon={HardDrive} color="var(--c-info)" title="Full Disk Access">
             {state === "granted" && (
@@ -160,5 +163,72 @@ export default function Settings() {
 
       <p className="mt-5 text-[11.5px] text-faint">Mr.Clean 0.1.0</p>
     </Page>
+  );
+}
+
+/** Menu bar / tray icon, automatic scans and their notifications. */
+function BackgroundSection() {
+  const { toast } = useStore();
+  const [bg, setBg] = useState<BackgroundSettings | null>(null);
+
+  useEffect(() => {
+    api.backgroundSettings().then(setBg).catch(() => setBg(null));
+  }, []);
+
+  if (!bg) return null;
+  const change = (patch: Partial<BackgroundSettings>) => {
+    const next = { ...bg, ...patch };
+    setBg(next);
+    api.setBackgroundSettings(next).catch((e) => toast(String(e), "error"));
+  };
+
+  return (
+    <Section icon={BellRing} color="var(--c-teal)" title={`${words.tray === "menu bar" ? "Menu bar" : "System tray"} & automatic scans`}>
+      <div className="flex flex-col gap-4 text-[13px]">
+        {bg.tray_available ? (
+          <label className="flex cursor-pointer items-start gap-3">
+            <span className="mt-0.5">
+              <Checkbox checked={bg.keep_in_menu_bar} onChange={(v) => change({ keep_in_menu_bar: v })} label={`Keep Mr.Clean in the ${words.tray}`} />
+            </span>
+            <span>
+              <span className="block font-medium">Keep Mr.Clean in the {words.tray} when the window is closed</span>
+              <span className="block text-[12px] text-muted">
+                See free disk, memory and security at a glance, and scan without opening the app. Quit from the {words.tray} icon.
+              </span>
+            </span>
+          </label>
+        ) : (
+          <p className="text-[12px] text-muted">This desktop has no {words.tray}, so Mr.Clean closes with its window. Automatic scans run while it's open.</p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span className="font-medium">Scan for security issues automatically</span>
+          <Segmented<Schedule>
+            label="Automatic scans"
+            value={bg.auto_scan}
+            onChange={(v) => change({ auto_scan: v })}
+            options={[
+              { value: "off", label: "Off" },
+              { value: "daily", label: "Daily" },
+              { value: "weekly", label: "Weekly" },
+            ]}
+          />
+          {bg.auto_scan !== "off" && <span className="text-[12px] text-faint">Last automatic scan: {bg.last_auto_scan ? ago(bg.last_auto_scan) : "not yet"}</span>}
+        </div>
+
+        <div className={cx("flex flex-col gap-2", bg.auto_scan === "off" && "opacity-50")}>
+          <span className="text-[12px] font-medium text-muted">Send a notification when</span>
+          <label className="flex cursor-pointer items-center gap-3">
+            <Checkbox checked={bg.notify_threats} disabled={bg.auto_scan === "off"} onChange={(v) => change({ notify_threats: v })} label="New security issues" />
+            <span>A new security issue is found</span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-3">
+            <Checkbox checked={bg.notify_disk} disabled={bg.auto_scan === "off"} onChange={(v) => change({ notify_disk: v })} label="Disk almost full" />
+            <span>Your disk is more than 90% full</span>
+          </label>
+        </div>
+        <p className="text-[11.5px] text-faint">Automatic scans only read files, run on this {words.computer}, and never delete anything.</p>
+      </div>
+    </Section>
   );
 }

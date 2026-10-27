@@ -26,16 +26,18 @@ export interface Words {
   /** Where "Show in …" opens a file. */
   fileManager: string;
   settingsApp: string;
+  /** Where the status icon lives: "menu bar" / "system tray". */
+  tray: string;
 }
 
 export function wordsFor(p: Platform): Words {
   switch (p) {
     case "windows":
-      return { computer: "PC", os: "Windows", trash: "Recycle Bin", fileManager: "File Explorer", settingsApp: "Windows Settings" };
+      return { computer: "PC", os: "Windows", trash: "Recycle Bin", fileManager: "File Explorer", settingsApp: "Windows Settings", tray: "system tray" };
     case "linux":
-      return { computer: "PC", os: "Linux", trash: "Trash", fileManager: "Files", settingsApp: "Settings" };
+      return { computer: "PC", os: "Linux", trash: "Trash", fileManager: "Files", settingsApp: "Settings", tray: "system tray" };
     default:
-      return { computer: "Mac", os: "Mac", trash: "Trash", fileManager: "Finder", settingsApp: "System Settings" };
+      return { computer: "Mac", os: "Mac", trash: "Trash", fileManager: "Finder", settingsApp: "System Settings", tray: "menu bar" };
   }
 }
 

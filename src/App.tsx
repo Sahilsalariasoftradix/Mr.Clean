@@ -3,6 +3,7 @@ import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useEffect, type ReactNode } from "react";
 
 import { cx } from "./components/ui";
+import { onSecurityUpdated, onTrayAction } from "./lib/api";
 import { StoreProvider, useStore, type Page } from "./lib/store";
 import Cleaner from "./pages/Cleaner";
 import LargeFiles from "./pages/LargeFiles";
@@ -48,8 +49,23 @@ function NavItem({ active, label, icon: Icon, shortcut, extra, onClick }: { acti
 }
 
 function Shell() {
-  const { page, go, toasts, security } = useStore();
+  const { page, go, toasts, security, setSecurity, scanEverything } = useStore();
   const alerts = security ? security.counts.high + security.counts.medium : 0;
+
+  // Menu bar / tray clicks, and automatic scans that finished in the background.
+  useEffect(() => {
+    const off = [
+      onTrayAction((a) => {
+        if (a === "scan") {
+          go("overview");
+          void scanEverything();
+        } else if (a === "clean") go("clean");
+        else if (a === "security") go("security");
+      }),
+      onSecurityUpdated(setSecurity),
+    ];
+    return () => off.forEach((p) => p.then((f) => f()));
+  }, [go, scanEverything, setSecurity]);
 
   // ⌘1–⌘5 (Ctrl on Windows/Linux) switch pages; ⌘, opens Settings.
   useEffect(() => {

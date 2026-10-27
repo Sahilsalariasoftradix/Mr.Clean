@@ -1,6 +1,7 @@
 //! Mr.Clean core: every scan, clean and safety decision lives here so it can be
 //! unit-tested without the UI. The Tauri app in `src-tauri` is a thin wrapper.
 
+pub mod background;
 pub mod bigfiles;
 pub mod cleaner;
 pub mod env;

@@ -102,3 +102,22 @@ test("memory page lists dev leftovers and settings persist delete mode", async (
   await expect(page.getByText(/items are deleted permanently/)).toBeVisible({ timeout: 10_000 });
   expect(errors).toEqual([]);
 });
+
+test("settings: menu bar and automatic scans", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto("/");
+  await nav(page, "Settings");
+  await expect(page.getByText("Menu bar & automatic scans")).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Keep Mr.Clean in the menu bar" })).toBeChecked();
+  // Notifications only make sense once automatic scans are on.
+  const threats = page.getByRole("checkbox", { name: "New security issues" });
+  await expect(threats).toBeDisabled();
+  await page.getByRole("radio", { name: "Weekly" }).click();
+  await expect(threats).toBeEnabled();
+  await expect(page.getByText("Last automatic scan: not yet")).toBeVisible();
+  // The choice is saved: it's still there after leaving and coming back.
+  await nav(page, "Overview");
+  await nav(page, "Settings");
+  await expect(page.getByRole("radio", { name: "Weekly" })).toHaveAttribute("aria-checked", "true");
+  expect(errors).toEqual([]);
+});

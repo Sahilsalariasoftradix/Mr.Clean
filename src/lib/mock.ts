@@ -158,6 +158,16 @@ const security = () => ({
 
 const deleted = (paths: string[]) => ({ removed: paths.map((p) => ({ path: p, bytes: 1.5 * GB })), failed: [], bytes_freed: paths.length * 1.5 * GB });
 
+// Menu bar / automatic scan settings for the browser preview.
+const background = {
+  keep_in_menu_bar: true,
+  auto_scan: "off",
+  notify_threats: true,
+  notify_disk: true,
+  last_auto_scan: null as number | null,
+  tray_available: true,
+};
+
 export async function mock<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   const a = args ?? {};
   const r = (v: unknown, ms = 150) => wait(ms).then(() => v as T);
@@ -184,6 +194,11 @@ export async function mock<T>(cmd: string, args?: Record<string, unknown>): Prom
       return r(k ? { title: k[0], text: k[1], advice: k[2] } : null, 50);
     }
     case "home_dir": return r(HOME, 0);
+    case "background_settings": return r({ ...background }, 0);
+    case "set_background_settings": {
+      Object.assign(background, a.choice as object);
+      return r(undefined, 0);
+    }
     // Browser preview has no TCC — treat as already granted so we don't nag.
     case "has_full_disk_access": return r(true, 0);
     case "app_identity":

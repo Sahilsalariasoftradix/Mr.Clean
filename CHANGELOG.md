@@ -4,6 +4,10 @@ All notable changes to Mr.Clean. Versions follow [Semantic Versioning](https://s
 
 ## Unreleased
 
+### New
+- **Menu bar / system tray:** free disk, memory in use and security status at a glance, plus Scan everything, Free up space and Check security without opening the window. Closing the window can keep Mr.Clean running there (on by default on Mac, off on Windows and Linux).
+- **Automatic scans:** optional daily or weekly security scans in the background, with a system notification only when there's a new issue or the disk passes 90% full. Off by default; read-only like every scan.
+
 ### Security
 - New checks for the attack found in a pull request to this repo (a contributor's machine was compromised and the malware force-pushed itself into their branch):
   - VS Code / Cursor tasks set to run when a folder is opened (`runOn: folderOpen`), especially hidden ones, in projects and in your editor's own settings.

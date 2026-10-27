@@ -3,6 +3,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import { mock } from "./mock";
 import type {
+  BackgroundSettings,
   AppIdentity,
   CleanerScan,
   DeviceInfo,
@@ -34,6 +35,8 @@ function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
 }
 
 export const api = {
+  backgroundSettings: () => call<BackgroundSettings>("background_settings"),
+  setBackgroundSettings: (choice: BackgroundSettings) => call<void>("set_background_settings", { choice }),
   systemInfo: () => call<SystemInfo>("system_info"),
   memoryLive: () => call<MemoryInfo>("memory_live"),
   deviceInfo: () => call<DeviceInfo>("device_info"),
@@ -79,6 +82,18 @@ export const api = {
 export async function onScanProgress(cb: (p: ScanProgress) => void): Promise<UnlistenFn> {
   if (!inTauri) return () => {};
   return listen<ScanProgress>("scan-progress", (e) => cb(e.payload));
+}
+
+/** Clicks in the menu bar / tray menu: "scan", "clean" or "security". */
+export async function onTrayAction(cb: (action: string) => void): Promise<UnlistenFn> {
+  if (!inTauri) return () => {};
+  return listen<string>("tray-action", (e) => cb(e.payload));
+}
+
+/** An automatic scan finished in the background. */
+export async function onSecurityUpdated(cb: (r: SecurityReport) => void): Promise<UnlistenFn> {
+  if (!inTauri) return () => {};
+  return listen<SecurityReport>("security-updated", (e) => cb(e.payload));
 }
 
 export function openFullDiskAccessSettings() {
